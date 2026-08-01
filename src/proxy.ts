@@ -35,9 +35,11 @@ export async function proxy(request: NextRequest) {
   );
 
   // Must run before the response is returned so a refreshed token gets written.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally against a cached JWKS (this project
+  // uses ES256), so this costs no network round trip on the common path — only
+  // an actual token refresh hits the network.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims?.sub ? claims.claims : null;
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/auth");

@@ -112,10 +112,8 @@ function buildPrompt(
 export async function POST(request: NextRequest) {
   // Auth first — this endpoint spends money on every call.
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const { data: claimsData } = await supabase.auth.getClaims();
+  if (!claimsData?.claims?.sub) {
     return Response.json({ error: "Not signed in." }, { status: 401 });
   }
 

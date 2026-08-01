@@ -34,11 +34,28 @@ export async function createClient() {
   );
 }
 
-/** The signed-in user, or null. */
-export async function getUser() {
+export type SessionUser = { id: string; email: string | null };
+
+/**
+ * The signed-in user, or null.
+ *
+ * Uses `getClaims()`, not `getUser()`. This project signs JWTs with an
+ * asymmetric key (ES256), so the token's signature is verified locally against
+ * a cached JWKS — no network round trip per request. `getUser()` calls
+ * /auth/v1/user every single time, which added a full round trip to every page
+ * render, before any data was fetched.
+ *
+ * This is not a security shortcut: the signature is cryptographically verified,
+ * and row level security remains the real boundary on every query.
+ */
+export async function getSessionUser(): Promise<SessionUser | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data, error } = await supabase.auth.getClaims();
+
+  if (error || !data?.claims?.sub) return null;
+
+  return {
+    id: data.claims.sub,
+    email: typeof data.claims.email === "string" ? data.claims.email : null,
+  };
 }

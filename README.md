@@ -119,6 +119,28 @@ Site URL is where confirmation and password-recovery emails point. If it ever
 drifts back to localhost, those emails silently break for every device except
 the machine running `npm run dev`.
 
+### Latency
+
+Two things dominate how fast a page feels, and both are easy to get wrong:
+
+1. **Compute must sit next to the database.** Supabase runs in `ap-south-1`
+   (Mumbai), so `vercel.json` pins Serverless Functions to `bom1` (Mumbai).
+   Vercel defaults new projects to `iad1` (Washington DC) — leaving that puts a
+   US-to-India round trip on *every* query, several times per page render.
+   **If you move the Supabase project, change `vercel.json` to match.**
+2. **Auth is verified locally, not over the network.** The app calls
+   `getClaims()`, never `getUser()`. `getUser()` hits `/auth/v1/user` on every
+   single call; with a check in both `proxy.ts` and the app layout that was two
+   sequential network round trips before any expense data was even requested.
+   Because this project signs JWTs with an asymmetric key (ES256), `getClaims()`
+   verifies the signature locally against a cached JWKS instead.
+
+   This is not a security shortcut — the signature is cryptographically
+   verified, and row level security is still enforced on every query. But it
+   *does* mean the project must keep using asymmetric signing keys: switching
+   back to a legacy shared secret would make `getClaims()` fall back to a
+   network call and the win disappears.
+
 > **Dark mode extensions.** This app is already dark by default. Browser
 > extensions like Dark Reader will re-darken it and flatten the contrast the
 > colour palette was chosen for — add the site to the extension's exception

@@ -14,11 +14,10 @@ import type { ActionResult } from "@/lib/types";
  */
 async function requireUser() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return { supabase, user };
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) redirect("/login");
+  return { supabase, user: { id: userId } };
 }
 
 function refreshApp() {

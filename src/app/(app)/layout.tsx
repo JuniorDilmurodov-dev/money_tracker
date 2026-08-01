@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { getUser } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { Nav } from "@/components/nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // proxy.ts already gates this, but a layout that renders user data should
   // never assume the gate ran.
-  const user = await getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
   return (

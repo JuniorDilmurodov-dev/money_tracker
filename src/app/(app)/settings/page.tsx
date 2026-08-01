@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui";
 import { signOut } from "@/app/actions";
 import { getCategories, getMonthlyBudget } from "@/lib/queries";
-import { getUser } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { BudgetForm, CategoryManager } from "./forms";
 
 export const metadata = { title: "Settings — Xarajat" };
@@ -10,7 +10,7 @@ export default async function SettingsPage() {
   const [categories, budget, user] = await Promise.all([
     getCategories(),
     getMonthlyBudget(),
-    getUser(),
+    getSessionUser(),
   ]);
 
   return (

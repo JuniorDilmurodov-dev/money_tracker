@@ -94,9 +94,35 @@ npm run dev
 Open http://localhost:3000, create an account, and log something.
 
 To use it from your phone on the same Wi-Fi, run `npm run dev -- -H 0.0.0.0` and
-visit `http://<your-mac-ip>:3000`. For real everyday use, deploy to Vercel, add the
-same environment variables in the project settings, and update Supabase's
-**Site URL** to the deployed domain.
+visit `http://<your-mac-ip>:3000`.
+
+## 6. Deployment
+
+Live at **https://money-tracker-omega-three.vercel.app**, hosted on Vercel and
+connected to this repository — pushes to `main` deploy automatically, and pull
+requests get preview URLs.
+
+The same four environment variables are set in the Vercel project for the
+production, preview and development environments. They are not read from
+`.env.local` in a deployed build, so **adding a new variable means adding it in
+Vercel too**, or the deployed app will fall back to its "not set" error path.
+
+Supabase's auth URLs must match wherever the app runs:
+
+| Setting | Value |
+|---|---|
+| Site URL | `https://money-tracker-omega-three.vercel.app` |
+| Redirect URL | `https://money-tracker-omega-three.vercel.app/**` |
+| Redirect URL | `http://localhost:3000/**` |
+
+Site URL is where confirmation and password-recovery emails point. If it ever
+drifts back to localhost, those emails silently break for every device except
+the machine running `npm run dev`.
+
+> **Dark mode extensions.** This app is already dark by default. Browser
+> extensions like Dark Reader will re-darken it and flatten the contrast the
+> colour palette was chosen for — add the site to the extension's exception
+> list rather than debugging the CSS.
 
 ---
 

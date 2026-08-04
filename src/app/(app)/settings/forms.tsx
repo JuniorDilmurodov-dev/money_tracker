@@ -14,7 +14,7 @@ function Submit({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="h-11 shrink-0 rounded-xl bg-series-1 px-4 text-sm font-semibold text-white disabled:opacity-60"
+      className="h-11 shrink-0 rounded-xl bg-series-1 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
     >
       {pending ? "…" : label}
     </button>

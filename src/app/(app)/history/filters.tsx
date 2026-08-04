@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-field";
 import { addDays, addMonths, startOfMonth, today } from "@/lib/dates";
 import type { Category } from "@/lib/types";
 
@@ -53,7 +54,7 @@ export function HistoryFilters({
               className={`h-9 shrink-0 rounded-full border px-3 text-sm transition-colors ${
                 active
                   ? "border-line-strong bg-surface-2 text-ink"
-                  : "border-line text-ink-3"
+                  : "border-line bg-surface-2 text-ink-3 hover:border-line-strong hover:text-ink"
               }`}
             >
               {preset.label}
@@ -65,20 +66,20 @@ export function HistoryFilters({
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-3">From</span>
-          <input
-            type="date"
+          <DateField
             value={values.from}
-            onChange={(e) => apply({ ...values, from: e.target.value })}
-            className="h-11 rounded-lg border border-line bg-surface-2 px-3 text-sm outline-none focus:border-line-strong"
+            onChange={(from) => apply({ ...values, from })}
+            allowClear
+            className="rounded-lg"
           />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-3">To</span>
-          <input
-            type="date"
+          <DateField
             value={values.to}
-            onChange={(e) => apply({ ...values, to: e.target.value })}
-            className="h-11 rounded-lg border border-line bg-surface-2 px-3 text-sm outline-none focus:border-line-strong"
+            onChange={(to) => apply({ ...values, to })}
+            allowClear
+            className="rounded-lg"
           />
         </label>
       </div>

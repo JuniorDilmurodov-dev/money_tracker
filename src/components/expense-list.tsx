@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { deleteExpense, updateExpense } from "@/app/actions";
+import { DateField } from "@/components/date-field";
 import { ErrorText } from "@/components/ui";
 import { formatRelativeDay, today } from "@/lib/dates";
-import { formatSom } from "@/lib/money";
+import { formatAmountInput, formatSom, handleAmountInputChange } from "@/lib/money";
 import type { Category, Expense } from "@/lib/types";
 
 function DeleteButton() {
@@ -15,7 +16,7 @@ function DeleteButton() {
     <button
       type="submit"
       disabled={pending}
-      className="h-10 rounded-lg border border-line px-3 text-sm text-ink-3 transition-colors hover:text-ink disabled:opacity-60"
+      className="h-10 rounded-lg border border-line bg-surface-2 px-3 text-sm text-ink-2 transition-colors hover:border-danger hover:text-danger disabled:opacity-60"
     >
       {pending ? "…" : "Delete"}
     </button>
@@ -28,7 +29,7 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      className="h-10 rounded-lg bg-series-1 px-4 text-sm font-semibold text-white disabled:opacity-60"
+      className="h-10 rounded-lg bg-series-1 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
     >
       {pending ? "…" : "Save"}
     </button>
@@ -45,6 +46,8 @@ function EditForm({
   onDone: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [amount, setAmount] = useState(() => formatAmountInput(String(Math.round(expense.amount))));
+  const [spentOn, setSpentOn] = useState(expense.spent_on);
 
   // Closing on success happens in the action, not in an effect watching it.
   async function handleSubmit(formData: FormData) {
@@ -68,21 +71,16 @@ function EditForm({
           <input
             name="amount"
             inputMode="decimal"
-            defaultValue={Math.round(expense.amount)}
+            value={amount}
+            onChange={(e) => handleAmountInputChange(e, setAmount)}
             required
             className="tnum h-11 rounded-lg border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong"
           />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-3">Date</span>
-          <input
-            name="spent_on"
-            type="date"
-            defaultValue={expense.spent_on}
-            max={today()}
-            required
-            className="h-11 rounded-lg border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong"
-          />
+          <input type="hidden" name="spent_on" value={spentOn} />
+          <DateField value={spentOn} onChange={(v) => v && setSpentOn(v)} max={today()} className="rounded-lg" />
         </label>
       </div>
 
@@ -118,7 +116,7 @@ function EditForm({
         <button
           type="button"
           onClick={onDone}
-          className="h-10 rounded-lg border border-line px-3 text-sm text-ink-3"
+          className="h-10 rounded-lg border border-line bg-surface-2 px-3 text-sm text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
         >
           Cancel
         </button>

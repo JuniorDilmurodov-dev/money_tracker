@@ -68,6 +68,10 @@ export function StatTile({
   );
 }
 
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-surface-2 ${className}`} />;
+}
+
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
     <p className="py-8 text-center text-sm text-ink-3">{children}</p>

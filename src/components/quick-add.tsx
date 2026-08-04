@@ -4,8 +4,10 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
 
 import { addExpense } from "@/app/actions";
+import { DateField } from "@/components/date-field";
 import { ErrorText } from "@/components/ui";
 import { today as todayISO, addDays } from "@/lib/dates";
+import { handleAmountInputChange } from "@/lib/money";
 import type { ActionResult, Category } from "@/lib/types";
 
 const LAST_CATEGORY_KEY = "last-category";
@@ -47,7 +49,7 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      className="h-14 w-full rounded-2xl bg-series-1 text-base font-semibold text-white transition-opacity disabled:opacity-60"
+      className="h-14 w-full rounded-2xl bg-series-1 text-base font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
     >
       {pending ? "Saving…" : "Save expense"}
     </button>
@@ -77,6 +79,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
   const [showNote, setShowNote] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [saved, setSaved] = useState(false);
+  const [amount, setAmount] = useState("");
 
   /**
    * Wraps the Server Action so the post-save reset happens in the action, not
@@ -90,6 +93,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
 
     formRef.current?.reset();
     setShowNote(false);
+    setAmount("");
     amountRef.current?.focus();
     setSaved(true);
     setTimeout(() => setSaved(false), 2200);
@@ -116,6 +120,8 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             autoFocus
             placeholder="0"
             required
+            value={amount}
+            onChange={(e) => handleAmountInputChange(e, setAmount)}
             className="tnum w-full min-w-0 bg-transparent text-4xl font-semibold tracking-tight outline-none placeholder:text-ink-3"
           />
           <span className="shrink-0 text-base text-ink-3">so&apos;m</span>
@@ -137,7 +143,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
                 className={`h-10 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors ${
                   active
                     ? "border-transparent bg-series-1 text-white"
-                    : "border-line bg-surface-2 text-ink-2"
+                    : "border-line bg-surface-2 text-ink-2 hover:border-line-strong hover:text-ink"
                 }`}
               >
                 {c.name}
@@ -161,28 +167,22 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             className={`h-10 rounded-full border px-4 text-sm transition-colors ${
               date === option.value
                 ? "border-line-strong bg-surface-2 text-ink"
-                : "border-line text-ink-3"
+                : "border-line bg-surface-2 text-ink-3 hover:border-line-strong hover:text-ink"
             }`}
           >
             {option.label}
           </button>
         ))}
-        <label className="flex items-center gap-2">
+        <div className="w-36">
           <span className="sr-only">Pick a date</span>
-          <input
-            type="date"
-            value={date}
-            max={today}
-            onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="h-10 rounded-full border border-line bg-surface-2 px-3 text-sm text-ink-2 outline-none focus:border-line-strong"
-          />
-        </label>
+          <DateField value={date} onChange={setDate} max={today} />
+        </div>
 
         {!showNote && (
           <button
             type="button"
             onClick={() => setShowNote(true)}
-            className="h-10 rounded-full border border-line px-4 text-sm text-ink-3"
+            className="h-10 rounded-full border border-line bg-surface-2 px-4 text-sm text-ink-3 transition-colors hover:border-line-strong hover:text-ink"
           >
             + Note
           </button>

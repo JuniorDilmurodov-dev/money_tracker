@@ -2,7 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ISODate, Range } from "@/lib/dates";
 import { eachDay } from "@/lib/dates";
-import type { Category, CategoryTotal, DailyTotal, Expense } from "@/lib/types";
+import type { Category, CategoryTotal, DailyTotal, Expense, Insight } from "@/lib/types";
 
 /** PostgREST can hand back `numeric` as a string — always coerce. */
 function num(value: unknown): number {
@@ -81,6 +81,46 @@ export async function searchExpenses(filters: ExpenseFilters): Promise<Expense[]
   const { data, error } = await query;
   if (error) throw new Error(`Could not load expenses: ${error.message}`);
   return (data ?? []).map(toExpense);
+}
+
+export async function getInsightsHistory(limit = 10): Promise<Insight[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("insights")
+    .select("id, period, period_start, text_en, text_uz, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(`Could not load insights: ${error.message}`);
+  return (data ?? []) as Insight[];
+}
+
+export async function saveInsight(input: {
+  period: "week" | "month";
+  periodStart: ISODate;
+  textEn: string;
+  textUz: string;
+}): Promise<Insight> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data, error } = await supabase
+    .from("insights")
+    .insert({
+      user_id: user.id,
+      period: input.period,
+      period_start: input.periodStart,
+      text_en: input.textEn,
+      text_uz: input.textUz,
+    })
+    .select("id, period, period_start, text_en, text_uz, created_at")
+    .single();
+
+  if (error) throw new Error(`Could not save insight: ${error.message}`);
+  return data as Insight;
 }
 
 // ---------------------------------------------------------------------------

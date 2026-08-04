@@ -27,6 +27,15 @@ export type DailyTotal = {
   total: number;
 };
 
+export type Insight = {
+  id: string;
+  period: "week" | "month";
+  period_start: ISODate;
+  text_en: string;
+  text_uz: string;
+  created_at: string;
+};
+
 /**
  * Result shape returned by every Server Action in this app.
  * `message` carries a non-error notice on success (e.g. "confirm your email"),

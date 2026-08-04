@@ -7,21 +7,21 @@
 :root {
   color-scheme: dark;
 
-  --surface-0: #111110; /* page */
-  --surface-1: #1a1a19; /* card / chart surface */
-  --surface-2: #242422; /* raised: inputs, chips */
-  --border: #34342f;
-  --border-strong: #4a4a43;
+  --surface-0: #1a1a1c; /* page */
+  --surface-1: #222225; /* card / chart surface */
+  --surface-2: #2c2c30; /* raised: inputs, chips */
+  --border: #3c3c41;
+  --border-strong: #57575d;
 
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #8a8980;
+  --text-primary: #f3f2f0;
+  --text-secondary: #b8b7b2;
+  --text-muted: #87867f;
 
   /* Data-viz slots, stepped for the dark surface. Validated: lightness band,
      chroma floor, CVD separation, normal-vision floor, 3:1 contrast. */
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --grid: #2c2c29;
+  --series-1: #a16207; /* dark gold accent */
+  --series-2: #c1551f;
+  --grid: #333237;
 
   --good: #199e70;
   --danger: #e66767;
@@ -40,8 +40,8 @@
   --text-secondary: #52514e;
   --text-muted: #78766f;
 
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
+  --series-1: #a16207; /* dark gold accent */
+  --series-2: #c1551f;
   --grid: #e6e4de;
 
   --good: #1baf7a;
@@ -77,6 +77,13 @@ body {
 body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
 }
 
 /* Tabular figures everywhere amounts are shown, so columns of so'm line up. */

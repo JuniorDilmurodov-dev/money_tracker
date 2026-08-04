@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   getExpensesInRange,
+  saveInsight,
   sumExpenses,
   totalsByCategory,
 } from "@/lib/queries";
@@ -21,9 +22,11 @@ import type { Expense } from "@/lib/types";
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-const SYSTEM_PROMPT = `You analyse a single person's personal spending and write a short, practical summary.
+const SYSTEM_PROMPT = `You analyse a single person's personal spending and write a short, practical summary in two languages: English and Uzbek (Latin script, natural everyday Uzbek, not a literal translation).
 
-Rules:
+Output strict JSON with exactly two keys, "en" and "uz", each a string. No markdown fences, no other keys, no commentary outside the JSON.
+
+Rules for each language version:
 - 3 to 5 sentences. No more.
 - Plain text only. No markdown, no bullet points, no headings, no asterisks, no emoji.
 - Amounts are Uzbek so'm. Write them with spaces as thousand separators and the word so'm, e.g. 150 000 so'm.
@@ -31,7 +34,21 @@ Rules:
 - Point out recurring small purchases only when the data shows the same kind of purchase repeating and the total is worth mentioning.
 - End with one or two concrete places to cut back, tied to a specific category and a rough amount.
 - Write plainly to the person, second person. Do not moralise, do not congratulate, do not repeat the numbers twice, do not add a closing pep talk.
-- If there is little or no data, say so in one sentence instead of inventing a pattern.`;
+- If there is little or no data, say so in one sentence instead of inventing a pattern.
+- Both versions must carry the same meaning and the same numbers, but read naturally in their own language rather than being a word-for-word translation of one another.`;
+
+type Bilingual = { en: string; uz: string };
+
+const EMPTY_TEXT: Record<"week" | "month", Bilingual> = {
+  week: {
+    en: "Nothing logged this week yet, so there is no pattern to read. Log a few expenses and check back.",
+    uz: "Bu hafta hali hech narsa qayd etilmagan, shuning uchun tahlil qiladigan narsa yo'q. Bir nechta xarajat kiritib, keyin qayta tekshiring.",
+  },
+  month: {
+    en: "Nothing logged this month yet, so there is no pattern to read. Log a few expenses and check back.",
+    uz: "Bu oy hali hech narsa qayd etilmagan, shuning uchun tahlil qiladigan narsa yo'q. Bir nechta xarajat kiritib, keyin qayta tekshiring.",
+  },
+};
 
 /** Repeated (category + note + amount) combinations — the "small stuff adds up" signal. */
 function recurringPurchases(expenses: Expense[]) {
@@ -105,7 +122,7 @@ function buildPrompt(
     );
   }
 
-  lines.push("", "Write the summary.");
+  lines.push("", 'Write the summary as JSON: {"en": "...", "uz": "..."}.');
   return lines.join("\n");
 }
 
@@ -145,13 +162,7 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (current.length === 0) {
-    return Response.json({
-      text:
-        period === "week"
-          ? "Nothing logged this week yet, so there is no pattern to read. Log a few expenses and check back."
-          : "Nothing logged this month yet, so there is no pattern to read. Log a few expenses and check back.",
-      generatedAt: new Date().toISOString(),
-    });
+    return Response.json({ ...EMPTY_TEXT[period], generatedAt: new Date().toISOString() });
   }
 
   const periodLabel =
@@ -165,8 +176,9 @@ export async function POST(request: NextRequest) {
   try {
     const completion = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: 400,
+      max_tokens: 800,
       temperature: 0.4,
+      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         {
@@ -176,13 +188,39 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const text = completion.choices[0]?.message?.content?.trim();
-
-    if (!text) {
+    const raw = completion.choices[0]?.message?.content?.trim();
+    if (!raw) {
       return Response.json({ error: "The model returned no text." }, { status: 502 });
     }
 
-    return Response.json({ text, generatedAt: new Date().toISOString() });
+    let parsed: Partial<Bilingual>;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return Response.json({ error: "The model returned malformed JSON." }, { status: 502 });
+    }
+
+    const en = parsed.en?.trim();
+    const uz = parsed.uz?.trim();
+    if (!en || !uz) {
+      return Response.json(
+        { error: "The model response was missing a language." },
+        { status: 502 },
+      );
+    }
+
+    // Best-effort: a generated summary is still worth returning even if this
+    // Supabase project hasn't had the `insights` migration applied yet.
+    const generatedAt = await saveInsight({
+      period,
+      periodStart: currentRange.from,
+      textEn: en,
+      textUz: uz,
+    })
+      .then((saved) => saved.created_at)
+      .catch(() => new Date().toISOString());
+
+    return Response.json({ en, uz, generatedAt, period, periodStart: currentRange.from });
   } catch (error) {
     if (error instanceof OpenAI.RateLimitError) {
       return Response.json(

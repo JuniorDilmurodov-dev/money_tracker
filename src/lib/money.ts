@@ -1,3 +1,5 @@
+import type { ChangeEvent } from "react";
+
 /** UZS has no practical subunit — everything is displayed as whole so'm. */
 
 /** 150000 → "150 000" */
@@ -48,4 +50,48 @@ export function parseAmount(input: string): number | null {
   const value = Number(cleaned);
   if (!Number.isFinite(value) || value <= 0) return null;
   return value;
+}
+
+/** Live-typing formatter: digits (and a single decimal point) grouped with spaces. */
+export function formatAmountInput(raw: string): string {
+  let cleaned = raw.replace(/[^\d.]/g, "");
+  const dot = cleaned.indexOf(".");
+  if (dot !== -1) {
+    cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, "");
+  }
+  const [intPart, decPart] = cleaned.split(".");
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return decPart === undefined ? grouped : `${grouped}.${decPart}`;
+}
+
+/**
+ * Reformats an amount input as the user types and keeps the caret sitting on
+ * the same digit, so inserting a grouping space doesn't jump the cursor.
+ */
+export function handleAmountInputChange(
+  e: ChangeEvent<HTMLInputElement>,
+  onFormatted: (value: string) => void,
+): void {
+  const input = e.target;
+  const cursor = input.selectionStart ?? input.value.length;
+  const digitsBefore = input.value.slice(0, cursor).replace(/\D/g, "").length;
+  const formatted = formatAmountInput(input.value);
+  onFormatted(formatted);
+
+  requestAnimationFrame(() => {
+    let pos = formatted.length;
+    if (digitsBefore === 0) {
+      pos = 0;
+    } else {
+      let count = 0;
+      for (let i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) count++;
+        if (count === digitsBefore) {
+          pos = i + 1;
+          break;
+        }
+      }
+    }
+    input.setSelectionRange(pos, pos);
+  });
 }

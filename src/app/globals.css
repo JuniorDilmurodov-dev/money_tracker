@@ -91,6 +91,17 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+/* iOS Safari auto-zooms the page on focus for any text input under 16px,
+   which reads as the whole layout lurching sideways. Force 16px on mobile
+   regardless of Tailwind's text-size utility on the element. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Native date input needs coaxing to match a dark surface. */
 :root:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);

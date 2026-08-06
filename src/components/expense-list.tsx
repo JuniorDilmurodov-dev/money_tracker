@@ -65,7 +65,7 @@ function EditForm({
     <form action={handleSubmit} className="flex flex-col gap-3 border-t border-line px-4 py-4">
       <input type="hidden" name="id" value={expense.id} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-3">Amount</span>
           <input

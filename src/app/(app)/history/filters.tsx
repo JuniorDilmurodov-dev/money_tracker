@@ -40,7 +40,7 @@ export function HistoryFilters({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
+      <div className="no-scrollbar fade-right -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
         {presets.map((preset) => {
           const active = values.from === preset.from && values.to === preset.to;
           return (
@@ -89,7 +89,7 @@ export function HistoryFilters({
         <select
           value={values.category}
           onChange={(e) => apply({ ...values, category: e.target.value })}
-          className="h-11 rounded-lg border border-line bg-surface-2 px-3 text-sm outline-none focus:border-line-strong"
+          className="h-11 rounded-lg border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong sm:text-sm"
         >
           <option value="">All categories</option>
           {categories.map((c) => (

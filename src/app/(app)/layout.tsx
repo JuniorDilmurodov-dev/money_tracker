@@ -12,7 +12,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-24 pt-4 sm:pb-10">
+    // The bottom nav is fixed and pads itself for the home indicator, so the
+    // scrolling content has to clear both or the last card hides behind it.
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 sm:pb-10">
       <header className="mb-4 flex items-center justify-between gap-3">
         <Link href="/" className="text-base font-semibold tracking-tight">
           Xarajat

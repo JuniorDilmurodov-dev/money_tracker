@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-title font-semibold tracking-tight">Settings</h1>
 
       <Card title="Monthly budget">
         <BudgetForm budget={budget} />

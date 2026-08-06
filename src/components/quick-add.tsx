@@ -122,16 +122,19 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             required
             value={amount}
             onChange={(e) => handleAmountInputChange(e, setAmount)}
-            className="tnum w-full min-w-0 bg-transparent text-4xl font-semibold tracking-tight outline-none placeholder:text-ink-3"
+            className="tnum w-full min-w-0 bg-transparent text-amount font-semibold tracking-tight outline-none placeholder:text-ink-3"
           />
           <span className="shrink-0 text-base text-ink-3">so&apos;m</span>
         </div>
       </div>
 
-      <fieldset>
+      {/* min-w-0 is load-bearing: a fieldset's UA min-inline-size is min-content,
+          so without it the chip row's full width pushes the form wider than the
+          card the moment a category is added, and the page scrolls sideways. */}
+      <fieldset className="min-w-0">
         <legend className="sr-only">Category</legend>
         <input type="hidden" name="category" value={category} />
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        <div className="no-scrollbar fade-right -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5">
           {categories.map((c) => {
             const active = c.name === category;
             return (
@@ -140,7 +143,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
                 type="button"
                 aria-pressed={active}
                 onClick={() => pickCategory(c.name)}
-                className={`h-10 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors ${
+                className={`h-10 max-w-36 shrink-0 truncate rounded-full border px-4 text-sm font-medium transition-colors ${
                   active
                     ? "border-transparent bg-series-1 text-white"
                     : "border-line bg-surface-2 text-ink-2 hover:border-line-strong hover:text-ink"
@@ -153,7 +156,10 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Two even columns on a phone — as a wrapping flex row the date picker
+          and "+ Note" fell onto a second line at different widths and read as
+          misaligned. From sm up there's room for one row. */}
+      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
         <input type="hidden" name="spent_on" value={date} />
         {[
           { label: "Today", value: today },
@@ -173,7 +179,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             {option.label}
           </button>
         ))}
-        <div className="w-36">
+        <div className="w-full sm:w-36">
           <span className="sr-only">Pick a date</span>
           <DateField value={date} onChange={setDate} max={today} />
         </div>
@@ -182,7 +188,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
           <button
             type="button"
             onClick={() => setShowNote(true)}
-            className="h-10 rounded-full border border-line bg-surface-2 px-4 text-sm text-ink-3 transition-colors hover:border-line-strong hover:text-ink"
+            className="h-10 w-full rounded-full border border-line bg-surface-2 px-4 text-sm text-ink-3 transition-colors hover:border-line-strong hover:text-ink sm:w-auto"
           >
             + Note
           </button>

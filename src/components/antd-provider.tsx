@@ -18,6 +18,9 @@ export function AntdProvider({ children }: { children: ReactNode }) {
         token: {
           colorPrimary: "#a16207",
           colorBgBase: theme === "dark" ? "#222225" : "#fcfcfb",
+          // surface-2, the same raised fill the app's own inputs sit on —
+          // without it the DatePicker is the one field on a card with no fill.
+          colorBgContainer: theme === "dark" ? "#2c2c30" : "#f0efec",
           colorBorder: theme === "dark" ? "#3c3c41" : "#dedcd5",
           borderRadius: 10,
           fontFamily: "var(--font-geist-sans), system-ui, sans-serif",

@@ -31,14 +31,14 @@ export default async function AddPage() {
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-line bg-surface-1 px-4 py-3">
           <div className="text-xs text-ink-3">Today</div>
-          <div className="tnum mt-1 text-xl font-semibold">{formatSom(todayTotal)}</div>
+          <div className="tnum mt-1 text-tile font-semibold">{formatSom(todayTotal)}</div>
         </div>
         <Link
           href="/week"
           className="rounded-2xl border border-line bg-surface-1 px-4 py-3 transition-colors hover:border-line-strong"
         >
           <div className="text-xs text-ink-3">This week</div>
-          <div className="tnum mt-1 text-xl font-semibold">{formatSom(weekTotal)}</div>
+          <div className="tnum mt-1 text-tile font-semibold">{formatSom(weekTotal)}</div>
         </Link>
       </div>
 

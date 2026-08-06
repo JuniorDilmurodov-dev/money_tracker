@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { formatPercentChange, formatSom } from "@/lib/money";
+import { formatAmount, formatPercentChange } from "@/lib/money";
 
 export function Card({
   title,
@@ -51,7 +51,13 @@ export function StatTile({
   return (
     <div className="rounded-xl border border-line bg-surface-2 px-4 py-3">
       <div className="text-xs text-ink-3">{label}</div>
-      <div className="tnum mt-1 text-2xl font-semibold sm:text-3xl">{formatSom(value)}</div>
+      {/* The unit is set apart at body size rather than carried at display
+          size: in a half-width tile on a phone, "so'm" at 22px is what pushes
+          a six-figure total onto a second line. */}
+      <div className="tnum mt-1 text-stat font-semibold">
+        {formatAmount(value)}
+        <span className="ml-1 text-sm font-medium text-ink-3">so&apos;m</span>
+      </div>
       {hasDelta && (
         <div className="mt-1 flex items-baseline gap-1.5 text-xs">
           <span
@@ -74,7 +80,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <p className="py-8 text-center text-sm text-ink-3">{children}</p>
+    <p className="py-8 text-center text-sm text-pretty text-ink-3">{children}</p>
   );
 }
 

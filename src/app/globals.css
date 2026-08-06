@@ -48,6 +48,27 @@
   --danger: #e34948;
 }
 
+/* ---------------------------------------------------------------------------
+   Fluid display type. Amounts in so'm are long ("1 246 100 so'm"), so every
+   size that carries a number scales with the viewport instead of jumping at a
+   breakpoint: a 360px phone gets a size that fits, 640px and up gets the full
+   one. Body copy is deliberately left alone — 14px is already the mobile size,
+   and shrinking secondary text further costs more legibility than it buys.
+   --------------------------------------------------------------------------- */
+@theme {
+  --text-amount: clamp(1.75rem, 1.05rem + 3.1vw, 2.25rem); /* 28 → 36px */
+  --text-amount--line-height: 1.1;
+  --text-stat: clamp(1.375rem, 1.05rem + 1.4vw, 1.875rem); /* 22 → 30px */
+  --text-stat--line-height: 1.2;
+  --text-tile: clamp(1.0625rem, 0.95rem + 0.5vw, 1.25rem); /* 17 → 20px */
+  --text-tile--line-height: 1.3;
+  --text-title: clamp(1.0625rem, 0.98rem + 0.4vw, 1.25rem); /* 17 → 20px */
+  --text-title--line-height: 1.3;
+
+  /* Secondary text: holds its mobile size, gains a point on wide screens. */
+  --text-sm: clamp(0.875rem, 0.85rem + 0.12vw, 0.9375rem); /* 14 → 15px */
+}
+
 @theme inline {
   --color-surface-0: var(--surface-0);
   --color-surface-1: var(--surface-1);
@@ -91,13 +112,14 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
-/* iOS Safari auto-zooms the page on focus for any text input under 16px,
-   which reads as the whole layout lurching sideways. Force 16px on mobile
-   regardless of Tailwind's text-size utility on the element. */
+/* iOS Safari auto-zooms the page on focus for any field under 16px, which
+   reads as the whole layout lurching sideways. Every field this app styles is
+   already at least 16px on mobile, so the guard only has to reach the one
+   input it doesn't style: the one antd renders inside the DatePicker (14px).
+   A blanket `input { font-size: 16px }` would also flatten the amount field's
+   display type — the one number the Add screen is built around. */
 @media (max-width: 640px) {
-  input,
-  select,
-  textarea {
+  .ant-picker input {
     font-size: 16px !important;
   }
 }
@@ -113,6 +135,15 @@ button:disabled {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* With the scrollbar hidden, the right edge fades out to advertise that the
+   row keeps going. Phones only: on a wide screen the row usually fits, and a
+   fade with nothing behind it reads as a rendering bug. */
+@media (max-width: 640px) {
+  .fade-right {
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

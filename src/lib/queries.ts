@@ -20,6 +20,17 @@ function toExpense(row: Record<string, unknown>): Expense {
   };
 }
 
+/**
+ * "Other" is the catch-all bucket, so it belongs at the end of every picker no
+ * matter how many categories get added after it. Sorting here rather than by
+ * sort_order keeps it true for rows that already exist. Sort is stable, so the
+ * rest keep their sort_order/name order.
+ */
+function otherLast(categories: Category[]): Category[] {
+  const isOther = (c: Category) => Number(c.name.trim().toLowerCase() === "other");
+  return [...categories].sort((a, b) => isOther(a) - isOther(b));
+}
+
 export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -29,7 +40,7 @@ export async function getCategories(): Promise<Category[]> {
     .order("name", { ascending: true });
 
   if (error) throw new Error(`Could not load categories: ${error.message}`);
-  return (data ?? []) as Category[];
+  return otherLast((data ?? []) as Category[]);
 }
 
 export async function getMonthlyBudget(): Promise<number | null> {

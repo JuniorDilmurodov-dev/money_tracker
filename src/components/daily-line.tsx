@@ -115,7 +115,7 @@ export function DailyLine({
         )}
       </ul>
 
-      <div className="h-56 w-full">
+      <div className="h-48 w-full sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
             <CartesianGrid
@@ -135,7 +135,7 @@ export function DailyLine({
               tick={{ fill: "var(--text-muted)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              width={48}
+              width={40}
               tickFormatter={(value: number) => formatCompact(value)}
             />
             <Tooltip

@@ -37,7 +37,7 @@ export default async function HistoryPage(props: PageProps<"/history">) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold tracking-tight">History</h1>
+      <h1 className="text-title font-semibold tracking-tight">History</h1>
 
       <Card>
         <HistoryFilters
@@ -62,7 +62,7 @@ export default async function HistoryPage(props: PageProps<"/history">) {
       </Card>
 
       {expenses.length === 300 && (
-        <p className="text-center text-xs text-ink-3">
+        <p className="text-center text-xs text-pretty text-ink-3">
           Showing the 300 most recent matches — narrow the date range to see more.
         </p>
       )}

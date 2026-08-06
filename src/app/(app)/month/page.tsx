@@ -51,7 +51,7 @@ function BudgetProgress({ spent, budget }: { spent: number; budget: number }) {
           }}
         />
       </div>
-      <p className="mt-2 text-sm text-ink-2">
+      <p className="mt-2 text-sm text-pretty text-ink-2">
         {over ? (
           <>
             Over budget by{" "}
@@ -104,7 +104,7 @@ export default async function MonthPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">{formatMonthYear(now)}</h1>
+        <h1 className="text-title font-semibold tracking-tight">{formatMonthYear(now)}</h1>
         <p className="text-sm text-ink-3">
           Day {daysElapsed} · {formatSom(Math.round(dailyAverage))} a day on average
         </p>
@@ -159,7 +159,7 @@ export default async function MonthPage() {
         ) : (
           <>
             {top && (
-              <p className="mb-4 text-sm text-ink-2">
+              <p className="mb-4 text-sm text-pretty text-ink-2">
                 {top.category} was{" "}
                 <span className="tnum font-semibold text-ink">
                   {Math.round(top.share)}%

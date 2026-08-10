@@ -91,7 +91,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except Next internals and static assets.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Everything except Next internals, static assets, and the icon/manifest
+    // routes. Those last two have no file extension to match on, and they are
+    // fetched by the OS with no session — gated, iOS would save the login
+    // page's HTML as the home-screen icon.
+    "/((?!_next/static|_next/image|apple-icon|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

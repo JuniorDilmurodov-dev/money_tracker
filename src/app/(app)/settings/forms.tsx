@@ -6,6 +6,8 @@ import { useFormStatus } from "react-dom";
 import { addCategory, deleteCategory, setMonthlyBudget } from "@/app/actions";
 import { ErrorText } from "@/components/ui";
 import { formatAmount } from "@/lib/money";
+import { useT } from "@/lib/i18n/client";
+import { translateCategory } from "@/lib/i18n/categories";
 import type { ActionResult, Category } from "@/lib/types";
 
 function Submit({ label }: { label: string }) {
@@ -22,6 +24,7 @@ function Submit({ label }: { label: string }) {
 }
 
 export function BudgetForm({ budget }: { budget: number | null }) {
+  const t = useT();
   const [state, formAction] = useActionState<ActionResult | null, FormData>(
     setMonthlyBudget,
     null,
@@ -31,24 +34,25 @@ export function BudgetForm({ budget }: { budget: number | null }) {
     <form action={formAction} className="flex flex-col gap-3">
       <div className="flex items-end gap-2">
         <label className="flex flex-1 flex-col gap-1.5">
-          <span className="text-xs text-ink-3">Amount in so&apos;m (blank = no budget)</span>
+          <span className="text-xs text-ink-3">{t.settings.budgetLabel}</span>
           <input
             name="monthly_budget"
             inputMode="decimal"
             defaultValue={budget ? formatAmount(budget) : ""}
-            placeholder="e.g. 5 000 000"
+            placeholder={t.settings.budgetPlaceholder}
             className="tnum h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong"
           />
         </label>
-        <Submit label="Save" />
+        <Submit label={t.settings.save} />
       </div>
       {state && !state.ok && <ErrorText>{state.error}</ErrorText>}
-      {state?.ok && <p className="text-sm text-ink-3">Saved ✓</p>}
+      {state?.ok && <p className="text-sm text-ink-3">{t.settings.saved}</p>}
     </form>
   );
 }
 
 export function CategoryManager({ categories }: { categories: Category[] }) {
+  const t = useT();
   const [state, formAction] = useActionState<ActionResult | null, FormData>(
     addCategory,
     null,
@@ -67,10 +71,10 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
             <form action={deleteCategory} className="contents">
               <input type="hidden" name="id" value={c.id} />
               <span className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-surface-2 pl-4 pr-2 text-sm">
-                {c.name}
+                {translateCategory(c.name, t)}
                 <button
                   type="submit"
-                  aria-label={`Remove ${c.name}`}
+                  aria-label={t.settings.removeCategory(translateCategory(c.name, t))}
                   className="grid h-6 w-6 place-items-center rounded-full text-ink-3 transition-colors hover:text-ink"
                 >
                   ✕
@@ -83,23 +87,20 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
 
       <form ref={formRef} action={formAction} className="flex items-end gap-2">
         <label className="flex flex-1 flex-col gap-1.5">
-          <span className="text-xs text-ink-3">Add a category</span>
+          <span className="text-xs text-ink-3">{t.settings.addCategory}</span>
           <input
             name="name"
             maxLength={40}
-            placeholder="e.g. Coffee"
+            placeholder={t.settings.categoryPlaceholder}
             className="h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong"
           />
         </label>
-        <Submit label="Add" />
+        <Submit label={t.settings.add} />
       </form>
 
       {state && !state.ok && <ErrorText>{state.error}</ErrorText>}
 
-      <p className="text-xs text-ink-3">
-        Removing a category only takes it out of the picker — expenses already logged
-        under it keep their category.
-      </p>
+      <p className="text-xs text-ink-3">{t.settings.removalNote}</p>
     </div>
   );
 }

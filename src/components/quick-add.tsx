@@ -8,6 +8,8 @@ import { DateField } from "@/components/date-field";
 import { ErrorText } from "@/components/ui";
 import { today as todayISO, addDays } from "@/lib/dates";
 import { handleAmountInputChange } from "@/lib/money";
+import { useT } from "@/lib/i18n/client";
+import { translateCategory } from "@/lib/i18n/categories";
 import type { ActionResult, Category } from "@/lib/types";
 
 const LAST_CATEGORY_KEY = "last-category";
@@ -45,13 +47,14 @@ function setLastCategory(name: string) {
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={pending}
       className="h-14 w-full rounded-2xl bg-series-1 text-base font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
     >
-      {pending ? "Saving…" : "Save expense"}
+      {pending ? t.quickAdd.saving : t.quickAdd.save}
     </button>
   );
 }
@@ -62,6 +65,7 @@ function SaveButton() {
  * date is already today, and the note stays collapsed until asked for.
  */
 export function QuickAdd({ categories }: { categories: Category[] }) {
+  const t = useT();
   const today = todayISO();
   const amountRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -108,7 +112,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
     <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
       <div>
         <label htmlFor="amount" className="sr-only">
-          Amount in so&apos;m
+          {t.quickAdd.amountLabel}
         </label>
         <div className="flex items-baseline gap-2 rounded-2xl border border-line bg-surface-2 px-4 py-3 focus-within:border-line-strong">
           <input
@@ -124,7 +128,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             onChange={(e) => handleAmountInputChange(e, setAmount)}
             className="tnum w-full min-w-0 bg-transparent text-amount font-semibold tracking-tight outline-none placeholder:text-ink-3"
           />
-          <span className="shrink-0 text-base text-ink-3">so&apos;m</span>
+          <span className="shrink-0 text-base text-ink-3">{t.currency}</span>
         </div>
       </div>
 
@@ -132,7 +136,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
           so without it the chip row's full width pushes the form wider than the
           card the moment a category is added, and the page scrolls sideways. */}
       <fieldset className="min-w-0">
-        <legend className="sr-only">Category</legend>
+        <legend className="sr-only">{t.quickAdd.category}</legend>
         <input type="hidden" name="category" value={category} />
         <div className="no-scrollbar fade-right -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5">
           {categories.map((c) => {
@@ -149,7 +153,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
                     : "border-line bg-surface-2 text-ink-2 hover:border-line-strong hover:text-ink"
                 }`}
               >
-                {c.name}
+                {translateCategory(c.name, t)}
               </button>
             );
           })}
@@ -162,8 +166,8 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
       <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
         <input type="hidden" name="spent_on" value={date} />
         {[
-          { label: "Today", value: today },
-          { label: "Yesterday", value: addDays(today, -1) },
+          { label: t.quickAdd.today, value: today },
+          { label: t.quickAdd.yesterday, value: addDays(today, -1) },
         ].map((option) => (
           <button
             key={option.value}
@@ -180,7 +184,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
           </button>
         ))}
         <div className="w-full sm:w-36">
-          <span className="sr-only">Pick a date</span>
+          <span className="sr-only">{t.quickAdd.pickDate}</span>
           <DateField value={date} onChange={setDate} max={today} />
         </div>
 
@@ -190,14 +194,14 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             onClick={() => setShowNote(true)}
             className="h-10 w-full rounded-full border border-line bg-surface-2 px-4 text-sm text-ink-3 transition-colors hover:border-line-strong hover:text-ink sm:w-auto"
           >
-            + Note
+            {t.quickAdd.addNote}
           </button>
         )}
       </div>
 
       {showNote && (
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-3">Note (optional)</span>
+          <span className="text-xs text-ink-3">{t.quickAdd.note}</span>
           <input
             name="note"
             maxLength={280}
@@ -212,7 +216,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
       <SaveButton />
 
       <p aria-live="polite" className="min-h-5 text-center text-sm text-ink-3">
-        {saved ? "Saved ✓" : ""}
+        {saved ? t.quickAdd.saved : ""}
       </p>
     </form>
   );

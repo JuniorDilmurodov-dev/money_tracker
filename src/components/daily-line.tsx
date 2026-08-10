@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import { formatCompact, formatSom } from "@/lib/money";
+import { useT } from "@/lib/i18n/client";
 
 export type DailyPoint = {
   label: string; // "Mon", or "1", "2" … for a month
@@ -31,6 +32,8 @@ function ChartTooltip({
   currentLabel: string;
   previousLabel: string;
 }) {
+  const t = useT();
+
   if (!active || !payload?.length) return null;
 
   const read = (key: string) => {
@@ -53,7 +56,7 @@ function ChartTooltip({
           />
           <span className="text-ink-3">{currentLabel}</span>
           <span className="tnum ml-auto font-medium text-ink">
-            {formatSom(current ?? 0)}
+            {formatSom(current ?? 0, t)}
           </span>
         </div>
         {previous !== null && (
@@ -65,7 +68,7 @@ function ChartTooltip({
             />
             <span className="text-ink-3">{previousLabel}</span>
             <span className="tnum ml-auto font-medium text-ink">
-              {formatSom(previous)}
+              {formatSom(previous, t)}
             </span>
           </div>
         )}

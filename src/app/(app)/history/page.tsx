@@ -4,8 +4,11 @@ import { HistoryFilters } from "./filters";
 import { formatSom } from "@/lib/money";
 import { getCategories, searchExpenses, sumExpenses } from "@/lib/queries";
 import type { ISODate } from "@/lib/dates";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata = { title: "History — Xarajat" };
+export async function generateMetadata() {
+  return { title: (await getT()).t.meta.history };
+}
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -21,6 +24,7 @@ function asText(value: string | string[] | undefined): string | undefined {
 
 export default async function HistoryPage(props: PageProps<"/history">) {
   const params = await props.searchParams;
+  const { t } = await getT();
 
   const filters = {
     from: asDate(params.from),
@@ -37,7 +41,7 @@ export default async function HistoryPage(props: PageProps<"/history">) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-title font-semibold tracking-tight">History</h1>
+      <h1 className="text-title font-semibold tracking-tight">{t.history.title}</h1>
 
       <Card>
         <HistoryFilters
@@ -51,20 +55,18 @@ export default async function HistoryPage(props: PageProps<"/history">) {
       </Card>
 
       <Card
-        title={`${expenses.length} expense${expenses.length === 1 ? "" : "s"}`}
-        action={<span className="tnum text-sm font-semibold">{formatSom(total)}</span>}
+        title={t.history.expenseCount(expenses.length)}
+        action={<span className="tnum text-sm font-semibold">{formatSom(total, t)}</span>}
       >
         {expenses.length === 0 ? (
-          <EmptyState>Nothing matches those filters.</EmptyState>
+          <EmptyState>{t.history.noMatches}</EmptyState>
         ) : (
           <ExpenseList expenses={expenses} categories={categories} />
         )}
       </Card>
 
       {expenses.length === 300 && (
-        <p className="text-center text-xs text-pretty text-ink-3">
-          Showing the 300 most recent matches — narrow the date range to see more.
-        </p>
+        <p className="text-center text-xs text-pretty text-ink-3">{t.history.capped}</p>
       )}
     </div>
   );

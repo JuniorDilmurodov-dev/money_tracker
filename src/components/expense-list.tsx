@@ -8,30 +8,34 @@ import { DateField } from "@/components/date-field";
 import { ErrorText } from "@/components/ui";
 import { formatRelativeDay, today } from "@/lib/dates";
 import { formatAmountInput, formatSom, handleAmountInputChange } from "@/lib/money";
+import { useI18n, useT } from "@/lib/i18n/client";
+import { translateCategory } from "@/lib/i18n/categories";
 import type { Category, Expense } from "@/lib/types";
 
 function DeleteButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={pending}
       className="h-10 rounded-lg border border-line bg-surface-2 px-3 text-sm text-ink-2 transition-colors hover:border-danger hover:text-danger disabled:opacity-60"
     >
-      {pending ? "…" : "Delete"}
+      {pending ? "…" : t.expense.delete}
     </button>
   );
 }
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={pending}
       className="h-10 rounded-lg bg-series-1 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
     >
-      {pending ? "…" : "Save"}
+      {pending ? "…" : t.expense.save}
     </button>
   );
 }
@@ -45,6 +49,7 @@ function EditForm({
   categories: Category[];
   onDone: () => void;
 }) {
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState(() => formatAmountInput(String(Math.round(expense.amount))));
   const [spentOn, setSpentOn] = useState(expense.spent_on);
@@ -67,7 +72,7 @@ function EditForm({
 
       <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-3">Amount</span>
+          <span className="text-xs text-ink-3">{t.expense.amount}</span>
           <input
             name="amount"
             inputMode="decimal"
@@ -78,14 +83,14 @@ function EditForm({
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-3">Date</span>
+          <span className="text-xs text-ink-3">{t.expense.date}</span>
           <input type="hidden" name="spent_on" value={spentOn} />
           <DateField value={spentOn} onChange={(v) => v && setSpentOn(v)} max={today()} className="rounded-lg" />
         </label>
       </div>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-ink-3">Category</span>
+        <span className="text-xs text-ink-3">{t.expense.category}</span>
         <select
           name="category"
           defaultValue={expense.category}
@@ -93,14 +98,14 @@ function EditForm({
         >
           {options.map((name) => (
             <option key={name} value={name}>
-              {name}
+              {translateCategory(name, t)}
             </option>
           ))}
         </select>
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-ink-3">Note</span>
+        <span className="text-xs text-ink-3">{t.expense.note}</span>
         <input
           name="note"
           maxLength={280}
@@ -118,7 +123,7 @@ function EditForm({
           onClick={onDone}
           className="h-10 rounded-lg border border-line bg-surface-2 px-3 text-sm text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
         >
-          Cancel
+          {t.expense.cancel}
         </button>
         <span className="flex-1" />
       </div>
@@ -138,6 +143,7 @@ function ExpenseRow({
   showDate: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const { locale, t } = useI18n();
 
   return (
     <li className="border-b border-line last:border-b-0">
@@ -149,15 +155,17 @@ function ExpenseRow({
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium">{expense.category}</div>
+            <div className="truncate text-sm font-medium">
+              {translateCategory(expense.category, t)}
+            </div>
             <div className="truncate text-xs text-ink-3">
-              {showDate && formatRelativeDay(expense.spent_on)}
+              {showDate && formatRelativeDay(expense.spent_on, locale, t)}
               {showDate && expense.note ? " · " : ""}
               {expense.note}
             </div>
           </div>
           <div className="tnum shrink-0 text-sm font-semibold">
-            {formatSom(expense.amount)}
+            {formatSom(expense.amount, t)}
           </div>
         </button>
       </div>

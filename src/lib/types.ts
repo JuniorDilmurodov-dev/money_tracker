@@ -1,4 +1,5 @@
 import type { ISODate } from "@/lib/dates";
+import type { Locale } from "@/lib/i18n/config";
 
 export type Expense = {
   id: string;
@@ -27,12 +28,20 @@ export type DailyTotal = {
   total: number;
 };
 
+/**
+ * An insight is generated in one language and stored in the column for it.
+ *
+ * Rows written before the language picker existed carry English *and* Uzbek
+ * with no `lang` — `insightText()` reads both shapes.
+ */
 export type Insight = {
   id: string;
   period: "week" | "month";
   period_start: ISODate;
-  text_en: string;
-  text_uz: string;
+  lang: Locale | null;
+  text_en: string | null;
+  text_ru: string | null;
+  text_uz: string | null;
   created_at: string;
 };
 

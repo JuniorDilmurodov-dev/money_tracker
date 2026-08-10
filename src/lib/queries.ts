@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ISODate, Range } from "@/lib/dates";
 import { eachDay } from "@/lib/dates";
+import type { Locale } from "@/lib/i18n/config";
 import type { Category, CategoryTotal, DailyTotal, Expense, Insight } from "@/lib/types";
 
 /** PostgREST can hand back `numeric` as a string — always coerce. */
@@ -98,7 +99,7 @@ export async function getInsightsHistory(limit = 10): Promise<Insight[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("insights")
-    .select("id, period, period_start, text_en, text_uz, created_at")
+    .select("id, period, period_start, lang, text_en, text_ru, text_uz, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -109,8 +110,8 @@ export async function getInsightsHistory(limit = 10): Promise<Insight[]> {
 export async function saveInsight(input: {
   period: "week" | "month";
   periodStart: ISODate;
-  textEn: string;
-  textUz: string;
+  lang: Locale;
+  text: string;
 }): Promise<Insight> {
   const supabase = await createClient();
   const {
@@ -124,10 +125,14 @@ export async function saveInsight(input: {
       user_id: user.id,
       period: input.period,
       period_start: input.periodStart,
-      text_en: input.textEn,
-      text_uz: input.textUz,
+      lang: input.lang,
+      // One column per language, so the row says which language it is in two
+      // ways — the `lang` tag and the column that isn't null.
+      text_en: input.lang === "en" ? input.text : null,
+      text_ru: input.lang === "ru" ? input.text : null,
+      text_uz: input.lang === "uz" ? input.text : null,
     })
-    .select("id, period, period_start, text_en, text_uz, created_at")
+    .select("id, period, period_start, lang, text_en, text_ru, text_uz, created_at")
     .single();
 
   if (error) throw new Error(`Could not save insight: ${error.message}`);

@@ -36,11 +36,14 @@ export function Card({
 export function StatTile({
   label,
   value,
+  currency,
   delta,
   deltaLabel,
 }: {
   label: string;
   value: number;
+  /** The translated currency word — `t.currency`. */
+  currency: string;
   delta?: number | null;
   deltaLabel?: string;
 }) {
@@ -56,7 +59,7 @@ export function StatTile({
           a six-figure total onto a second line. */}
       <div className="tnum mt-1 text-stat font-semibold">
         {formatAmount(value)}
-        <span className="ml-1 text-sm font-medium text-ink-3">so&apos;m</span>
+        <span className="ml-1 text-sm font-medium text-ink-3">{currency}</span>
       </div>
       {hasDelta && (
         <div className="mt-1 flex items-baseline gap-1.5 text-xs">

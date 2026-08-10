@@ -18,10 +18,23 @@ import {
   totalsByCategory,
   totalsByDay,
 } from "@/lib/queries";
+import { getT } from "@/lib/i18n/server";
+import { translateCategory } from "@/lib/i18n/categories";
+import type { Dictionary } from "@/lib/i18n";
 
-export const metadata = { title: "This month — Xarajat" };
+export async function generateMetadata() {
+  return { title: (await getT()).t.meta.month };
+}
 
-function BudgetProgress({ spent, budget }: { spent: number; budget: number }) {
+function BudgetProgress({
+  spent,
+  budget,
+  t,
+}: {
+  spent: number;
+  budget: number;
+  t: Dictionary;
+}) {
   const pct = (spent / budget) * 100;
   const over = spent > budget;
   const remaining = budget - spent;
@@ -30,8 +43,8 @@ function BudgetProgress({ spent, budget }: { spent: number; budget: number }) {
     <div>
       <div className="mb-2 flex items-baseline justify-between gap-3">
         <span className="tnum text-sm">
-          {formatSom(spent)}{" "}
-          <span className="text-ink-3">of {formatSom(budget)}</span>
+          {formatSom(spent, t)}{" "}
+          <span className="text-ink-3">{t.month.budgetOf(formatSom(budget, t))}</span>
         </span>
         <span className="tnum text-sm font-medium">{Math.round(pct)}%</span>
       </div>
@@ -41,7 +54,7 @@ function BudgetProgress({ spent, budget }: { spent: number; budget: number }) {
         aria-valuemin={0}
         aria-valuemax={budget}
         aria-valuenow={Math.min(spent, budget)}
-        aria-label="Monthly budget used"
+        aria-label={t.month.budgetUsed}
       >
         <div
           className="h-full rounded-full"
@@ -54,16 +67,16 @@ function BudgetProgress({ spent, budget }: { spent: number; budget: number }) {
       <p className="mt-2 text-sm text-pretty text-ink-2">
         {over ? (
           <>
-            Over budget by{" "}
+            {t.month.overBudget}{" "}
             <span className="tnum font-medium" style={{ color: "var(--danger)" }}>
-              {formatSom(-remaining)}
+              {formatSom(-remaining, t)}
             </span>
             .
           </>
         ) : (
           <>
-            <span className="tnum font-medium">{formatSom(remaining)}</span> left this
-            month.
+            <span className="tnum font-medium">{formatSom(remaining, t)}</span>{" "}
+            {t.month.leftThisMonth}
           </>
         )}
       </p>
@@ -72,6 +85,7 @@ function BudgetProgress({ spent, budget }: { spent: number; budget: number }) {
 }
 
 export default async function MonthPage() {
+  const { locale, t } = await getT();
   const now = today();
   const thisMonth = monthRange(now);
   const lastMonth = monthRange(addMonths(thisMonth.from, -1));
@@ -104,70 +118,85 @@ export default async function MonthPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-title font-semibold tracking-tight">{formatMonthYear(now)}</h1>
+        <h1 className="text-title font-semibold tracking-tight">
+          {formatMonthYear(now, locale)}
+        </h1>
         <p className="text-sm text-ink-3">
-          Day {daysElapsed} · {formatSom(Math.round(dailyAverage))} a day on average
+          {t.month.dayCount(daysElapsed)} ·{" "}
+          {t.month.dailyAverage(formatSom(Math.round(dailyAverage), t))}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <StatTile
-          label="This month"
+          label={t.month.thisMonth}
           value={currentTotal}
+          currency={t.currency}
           delta={change}
-          deltaLabel="vs last month"
+          deltaLabel={t.month.vsLastMonth}
         />
-        <StatTile label={formatMonthYear(lastMonth.from)} value={previousTotal} />
+        <StatTile
+          label={formatMonthYear(lastMonth.from, locale)}
+          value={previousTotal}
+          currency={t.currency}
+        />
       </div>
 
       <Card
-        title="Budget"
+        title={t.month.budget}
         action={
           <Link href="/settings" className="text-xs text-ink-3 hover:text-ink-2">
-            {budget ? "Change" : "Set budget"}
+            {budget ? t.month.change : t.month.setBudget}
           </Link>
         }
       >
         {budget ? (
-          <BudgetProgress spent={currentTotal} budget={budget} />
+          <BudgetProgress spent={currentTotal} budget={budget} t={t} />
         ) : (
           <EmptyState>
-            No monthly budget set.{" "}
+            {t.month.noBudget}{" "}
             <Link href="/settings" className="underline">
-              Add one
+              {t.month.addBudget}
             </Link>{" "}
-            to track what&apos;s left.
+            {t.month.toTrackRemaining}
           </EmptyState>
         )}
       </Card>
 
-      <Card title="Daily spending">
+      <Card title={t.month.dailySpending}>
         {currentTotal === 0 && previousTotal === 0 ? (
-          <EmptyState>No spending logged in the last two months.</EmptyState>
+          <EmptyState>{t.month.nothingTwoMonths}</EmptyState>
         ) : (
           <DailyLine
             data={points}
-            currentLabel="This month"
-            previousLabel="Last month"
+            currentLabel={t.month.thisMonth}
+            previousLabel={t.month.lastMonth}
           />
         )}
       </Card>
 
-      <Card title="By category">
+      <Card title={t.month.byCategory}>
         {byCategory.length === 0 ? (
-          <EmptyState>Nothing logged this month yet.</EmptyState>
+          <EmptyState>{t.month.nothingThisMonth}</EmptyState>
         ) : (
           <>
-            {top && (
-              <p className="mb-4 text-sm text-pretty text-ink-2">
-                {top.category} was{" "}
-                <span className="tnum font-semibold text-ink">
-                  {Math.round(top.share)}%
-                </span>{" "}
-                of your spending this month.
-              </p>
-            )}
-            <CategoryBars totals={byCategory} />
+            {top &&
+              (() => {
+                // Split into three parts so the share can stay emphasised
+                // wherever a language puts it in the sentence.
+                const line = t.month.topCategory(
+                  translateCategory(top.category, t),
+                  Math.round(top.share),
+                );
+                return (
+                  <p className="mb-4 text-sm text-pretty text-ink-2">
+                    {line.before}
+                    <span className="tnum font-semibold text-ink">{line.value}</span>
+                    {line.after}
+                  </p>
+                );
+              })()}
+            <CategoryBars totals={byCategory} t={t} />
           </>
         )}
       </Card>

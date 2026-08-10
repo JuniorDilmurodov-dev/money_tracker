@@ -6,7 +6,14 @@
  * "Today" is resolved in a fixed app timezone rather than the server's, so a
  * midnight expense doesn't land on the wrong day.
  */
+import { INTL_LOCALE, type Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+
 export const APP_TIMEZONE = process.env.NEXT_PUBLIC_APP_TIMEZONE ?? "Asia/Tashkent";
+
+function intlLocale(locale: Locale): string {
+  return INTL_LOCALE[locale];
+}
 
 export type ISODate = string; // "YYYY-MM-DD"
 
@@ -80,35 +87,55 @@ export function monthRange(iso: ISODate): Range {
   return { from: startOfMonth(iso), to: endOfMonth(iso) };
 }
 
-/** "Mon", "Tue", … */
-export function weekdayShort(iso: ISODate): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    timeZone: "UTC",
-  }).format(toDate(iso));
+// ---------------------------------------------------------------------------
+// Display formatting. Every function takes the active locale — none of these
+// may fall back to a hardcoded language, or a Russian page ends up with English
+// month names in its headings.
+// ---------------------------------------------------------------------------
+
+/**
+ * CLDR gives Russian months a trailing " г." and Uzbek a comma before the
+ * year, and both start lowercase. In a page heading that reads as a typo, so
+ * the year separator is dropped and the first letter is raised.
+ */
+function asHeading(text: string): string {
+  const cleaned = text.replace(/\s*г\.$/, "").replace(/,\s+/g, " ").trim();
+  return cleaned.charAt(0).toLocaleUpperCase() + cleaned.slice(1);
 }
 
-/** "5 Aug" */
-export function formatDayMonth(iso: ISODate): string {
-  return new Intl.DateTimeFormat("en-GB", {
+/** "Mon" / "пн" / "Du" */
+export function weekdayShort(iso: ISODate, locale: Locale): string {
+  return asHeading(
+    new Intl.DateTimeFormat(intlLocale(locale), {
+      weekday: "short",
+      timeZone: "UTC",
+    }).format(toDate(iso)),
+  );
+}
+
+/** "5 Aug" / "5 авг." / "5-avg" */
+export function formatDayMonth(iso: ISODate, locale: Locale): string {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "short",
     timeZone: "UTC",
   }).format(toDate(iso));
 }
 
-/** "August 2026" */
-export function formatMonthYear(iso: ISODate): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(toDate(iso));
+/** "August 2026" / "Август 2026" / "Avgust 2026" */
+export function formatMonthYear(iso: ISODate, locale: Locale): string {
+  return asHeading(
+    new Intl.DateTimeFormat(intlLocale(locale), {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(toDate(iso)),
+  );
 }
 
 /** "5 Aug 2026" */
-export function formatFullDate(iso: ISODate): string {
-  return new Intl.DateTimeFormat("en-GB", {
+export function formatFullDate(iso: ISODate, locale: Locale): string {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -116,10 +143,15 @@ export function formatFullDate(iso: ISODate): string {
   }).format(toDate(iso));
 }
 
-/** "Today", "Yesterday", or "5 Aug". */
-export function formatRelativeDay(iso: ISODate, reference = today()): string {
+/** "Today", "Yesterday", or the day and month. */
+export function formatRelativeDay(
+  iso: ISODate,
+  locale: Locale,
+  t: Dictionary,
+  reference = today(),
+): string {
   const diff = daysBetween(iso, reference);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
-  return formatDayMonth(iso);
+  if (diff === 0) return t.dates.today;
+  if (diff === 1) return t.dates.yesterday;
+  return formatDayMonth(iso, locale);
 }

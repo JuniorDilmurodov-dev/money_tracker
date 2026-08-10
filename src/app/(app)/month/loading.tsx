@@ -1,6 +1,9 @@
 import { Card, Skeleton } from "@/components/ui";
+import { getT } from "@/lib/i18n/server";
 
-export default function MonthLoading() {
+export default async function MonthLoading() {
+  const { t } = await getT();
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -13,15 +16,15 @@ export default function MonthLoading() {
         <Skeleton className="h-[72px]" />
       </div>
 
-      <Card title="Budget">
+      <Card title={t.month.budget}>
         <Skeleton className="h-16" />
       </Card>
 
-      <Card title="Daily spending">
+      <Card title={t.month.dailySpending}>
         <Skeleton className="h-40" />
       </Card>
 
-      <Card title="By category">
+      <Card title={t.month.byCategory}>
         <Skeleton className="h-24" />
       </Card>
     </div>

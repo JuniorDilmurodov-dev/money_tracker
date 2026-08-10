@@ -5,6 +5,8 @@ import { useState } from "react";
 
 import { DateField } from "@/components/date-field";
 import { addDays, addMonths, startOfMonth, today } from "@/lib/dates";
+import { useT } from "@/lib/i18n/client";
+import { translateCategory } from "@/lib/i18n/categories";
 import type { Category } from "@/lib/types";
 
 type Values = { from: string; to: string; category: string };
@@ -18,6 +20,7 @@ export function HistoryFilters({
   initial: Values;
 }) {
   const router = useRouter();
+  const t = useT();
   const [values, setValues] = useState<Values>(initial);
 
   function apply(next: Values) {
@@ -32,10 +35,14 @@ export function HistoryFilters({
 
   const now = today();
   const presets = [
-    { label: "Last 7 days", from: addDays(now, -6), to: now },
-    { label: "Last 30 days", from: addDays(now, -29), to: now },
-    { label: "This month", from: startOfMonth(now), to: now },
-    { label: "Last month", from: startOfMonth(addMonths(now, -1)), to: addDays(startOfMonth(now), -1) },
+    { label: t.history.last7Days, from: addDays(now, -6), to: now },
+    { label: t.history.last30Days, from: addDays(now, -29), to: now },
+    { label: t.history.thisMonth, from: startOfMonth(now), to: now },
+    {
+      label: t.history.lastMonth,
+      from: startOfMonth(addMonths(now, -1)),
+      to: addDays(startOfMonth(now), -1),
+    },
   ];
 
   return (
@@ -65,7 +72,7 @@ export function HistoryFilters({
 
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-3">From</span>
+          <span className="text-xs text-ink-3">{t.history.from}</span>
           <DateField
             value={values.from}
             onChange={(from) => apply({ ...values, from })}
@@ -74,7 +81,7 @@ export function HistoryFilters({
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-ink-3">To</span>
+          <span className="text-xs text-ink-3">{t.history.to}</span>
           <DateField
             value={values.to}
             onChange={(to) => apply({ ...values, to })}
@@ -85,16 +92,16 @@ export function HistoryFilters({
       </div>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-ink-3">Category</span>
+        <span className="text-xs text-ink-3">{t.history.category}</span>
         <select
           value={values.category}
           onChange={(e) => apply({ ...values, category: e.target.value })}
           className="h-11 rounded-lg border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong sm:text-sm"
         >
-          <option value="">All categories</option>
+          <option value="">{t.history.allCategories}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.name}>
-              {c.name}
+              {translateCategory(c.name, t)}
             </option>
           ))}
         </select>
@@ -106,7 +113,7 @@ export function HistoryFilters({
           onClick={() => apply({ from: "", to: "", category: "" })}
           className="self-start text-sm text-ink-3 underline"
         >
-          Clear filters
+          {t.history.clearFilters}
         </button>
       )}
     </div>

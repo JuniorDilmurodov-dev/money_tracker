@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { useT } from "@/lib/i18n/client";
+
 /**
  * Transient Supabase failures — a token minted a fraction of a second ahead of
  * the verifying node ("JWT issued at future"), a dropped connection — should
@@ -14,6 +16,8 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -23,21 +27,17 @@ export default function AppError({
   return (
     <div className="flex flex-col items-center gap-4 py-16 text-center">
       <p className="text-sm text-ink-2">
-        {isAuthHiccup
-          ? "Your session hiccuped while loading this page."
-          : "Something went wrong loading this page."}
+        {isAuthHiccup ? t.error.sessionHiccup : t.error.generic}
       </p>
       <button
         type="button"
         onClick={reset}
         className="h-11 rounded-xl bg-series-1 px-5 text-sm font-semibold text-white"
       >
-        Try again
+        {t.error.tryAgain}
       </button>
       <p className="max-w-xs text-xs text-ink-3">
-        {isAuthHiccup
-          ? "This usually clears on its own. If it keeps happening, sign out and back in."
-          : "Your data is safe — nothing was lost."}
+        {isAuthHiccup ? t.error.hiccupHint : t.error.dataSafe}
       </p>
     </div>
   );

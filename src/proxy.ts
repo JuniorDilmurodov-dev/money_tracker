@@ -1,6 +1,30 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+import {
+  isLocale,
+  localeFromAcceptLanguage,
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE,
+} from "@/lib/i18n/config";
+
+/**
+ * First visit only: pin the language the browser asked for so it survives the
+ * `Accept-Language` header changing later. Server Components fall back to the
+ * same header when the cookie is missing, so a request that skips this still
+ * renders in the right language — it just won't be remembered.
+ */
+function persistLocale(response: NextResponse, request: NextRequest): NextResponse {
+  if (isLocale(request.cookies.get(LOCALE_COOKIE)?.value)) return response;
+
+  response.cookies.set(
+    LOCALE_COOKIE,
+    localeFromAcceptLanguage(request.headers.get("accept-language")),
+    { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: "lax" },
+  );
+  return response;
+}
+
 /**
  * Next 16 renamed `middleware` to `proxy`. This runs before every matched
  * request and refreshes the Supabase session so Server Components always see a
@@ -52,17 +76,17 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
-    return NextResponse.redirect(url);
+    return persistLocale(NextResponse.redirect(url), request);
   }
 
   if (user && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
-    return NextResponse.redirect(url);
+    return persistLocale(NextResponse.redirect(url), request);
   }
 
-  return response;
+  return persistLocale(response, request);
 }
 
 export const config = {

@@ -3,20 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useT } from "@/lib/i18n/client";
+import type { Dictionary } from "@/lib/i18n";
+
 const LINKS = [
-  { href: "/", label: "Add", icon: "＋" },
-  { href: "/week", label: "Week", icon: "▤" },
-  { href: "/month", label: "Month", icon: "▦" },
-  { href: "/history", label: "History", icon: "☰" },
-  { href: "/insights", label: "Insights", icon: "✦" },
-];
+  { href: "/", key: "add", icon: "＋" },
+  { href: "/week", key: "week", icon: "▤" },
+  { href: "/month", key: "month", icon: "▦" },
+  { href: "/history", key: "history", icon: "☰" },
+  { href: "/insights", key: "insights", icon: "✦" },
+] satisfies { href: string; key: keyof Dictionary["nav"]; icon: string }[];
 
 export function Nav() {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <nav
-      aria-label="Main"
+      aria-label={t.nav.label}
       className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface-1/95 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
@@ -38,7 +42,7 @@ export function Nav() {
                 <span aria-hidden className="text-base leading-none sm:text-sm">
                   {link.icon}
                 </span>
-                {link.label}
+                {t.nav[link.key]}
               </Link>
             </li>
           );

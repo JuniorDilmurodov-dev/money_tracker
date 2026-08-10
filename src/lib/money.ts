@@ -1,6 +1,13 @@
 import type { ChangeEvent } from "react";
 
-/** UZS has no practical subunit — everything is displayed as whole so'm. */
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+
+/**
+ * UZS has no practical subunit — everything is displayed as whole so'm.
+ *
+ * Only the currency word is translated; the digits are grouped with spaces in
+ * every language, which is what all three of them use anyway.
+ */
 
 /** 150000 → "150 000" */
 export function formatAmount(value: number): string {
@@ -9,9 +16,9 @@ export function formatAmount(value: number): string {
     .replace(/,/g, " "); // non-breaking spaces so amounts never wrap mid-number
 }
 
-/** 150000 → "150 000 so'm" */
-export function formatSom(value: number): string {
-  return `${formatAmount(value)} so'm`;
+/** 150000 → "150 000 so'm" / "150 000 сум" */
+export function formatSom(value: number, t: Dictionary): string {
+  return `${formatAmount(value)} ${t.currency}`;
 }
 
 /** Compact form for chart axes: 150000 → "150k", 1500000 → "1.5M" */

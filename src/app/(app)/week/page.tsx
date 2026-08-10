@@ -11,10 +11,14 @@ import {
   totalsByCategory,
   totalsByDay,
 } from "@/lib/queries";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata = { title: "This week — Xarajat" };
+export async function generateMetadata() {
+  return { title: (await getT()).t.meta.week };
+}
 
 export default async function WeekPage() {
+  const { locale, t } = await getT();
   const now = today();
   const thisWeek = weekRange(now);
   const lastWeek = weekRange(addDays(thisWeek.from, -7));
@@ -33,7 +37,7 @@ export default async function WeekPage() {
   const previousDays = totalsByDay(previous, lastWeek);
 
   const points: DailyPoint[] = currentDays.map((day, i) => ({
-    label: weekdayShort(day.date),
+    label: weekdayShort(day.date, locale),
     current: day.total,
     previous: previousDays[i]?.total ?? null,
   }));
@@ -43,41 +47,46 @@ export default async function WeekPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-title font-semibold tracking-tight">This week</h1>
+        <h1 className="text-title font-semibold tracking-tight">{t.week.title}</h1>
         <p className="text-sm text-ink-3">
-          {formatDayMonth(thisWeek.from)} – {formatDayMonth(thisWeek.to)}
+          {formatDayMonth(thisWeek.from, locale)} – {formatDayMonth(thisWeek.to, locale)}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <StatTile
-          label="This week"
+          label={t.week.thisWeek}
           value={currentTotal}
+          currency={t.currency}
           delta={change}
-          deltaLabel="vs last week"
+          deltaLabel={t.week.vsLastWeek}
         />
-        <StatTile label="Last week" value={previousTotal} />
+        <StatTile label={t.week.lastWeek} value={previousTotal} currency={t.currency} />
       </div>
 
-      <Card title="Daily spending">
+      <Card title={t.week.dailySpending}>
         {currentTotal === 0 && previousTotal === 0 ? (
-          <EmptyState>No spending logged in the last two weeks.</EmptyState>
+          <EmptyState>{t.week.nothingTwoWeeks}</EmptyState>
         ) : (
-          <DailyLine data={points} currentLabel="This week" previousLabel="Last week" />
+          <DailyLine
+            data={points}
+            currentLabel={t.week.thisWeek}
+            previousLabel={t.week.lastWeek}
+          />
         )}
       </Card>
 
-      <Card title="By category">
+      <Card title={t.week.byCategory}>
         {byCategory.length === 0 ? (
-          <EmptyState>Nothing logged this week yet.</EmptyState>
+          <EmptyState>{t.week.nothingThisWeek}</EmptyState>
         ) : (
-          <CategoryBars totals={byCategory} />
+          <CategoryBars totals={byCategory} t={t} />
         )}
       </Card>
 
-      <Card title="This week's expenses">
+      <Card title={t.week.expenses}>
         {current.length === 0 ? (
-          <EmptyState>Nothing logged this week yet.</EmptyState>
+          <EmptyState>{t.week.nothingThisWeek}</EmptyState>
         ) : (
           <ExpenseList expenses={current} categories={categories} />
         )}

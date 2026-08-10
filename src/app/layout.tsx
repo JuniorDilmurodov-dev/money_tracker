@@ -3,14 +3,26 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { AntdProvider } from "@/components/antd-provider";
+import { getLocale, getT } from "@/lib/i18n/server";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Cyrillic is a separate subset — without it every Russian string falls back
+// to a system font while the rest of the page stays on Geist.
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin", "cyrillic"],
+});
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin", "cyrillic"],
+});
 
-export const metadata: Metadata = {
-  title: "Xarajat — expense tracker",
-  description: "Log spending in seconds. Weekly and monthly breakdowns in so'm.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return {
+    title: `${t.appName} — expense tracker`,
+    description: t.meta.description,
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -33,10 +45,12 @@ try {
 } catch (e) {}
 `;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
@@ -44,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <AntdProvider>{children}</AntdProvider>
+        <AntdProvider locale={locale}>{children}</AntdProvider>
       </body>
     </html>
   );

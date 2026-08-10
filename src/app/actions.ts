@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { parseAmount } from "@/lib/money";
 import { today } from "@/lib/dates";
+import { getT } from "@/lib/i18n/server";
+import { isLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from "@/lib/i18n/config";
 import type { ActionResult } from "@/lib/types";
 
 /**
@@ -27,6 +30,28 @@ function refreshApp() {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // ---------------------------------------------------------------------------
+// Language
+// ---------------------------------------------------------------------------
+
+/**
+ * Writing the cookie from a Server Action rather than from the browser keeps
+ * the switch atomic with the re-render: the RSC payload that comes back is
+ * already in the new language, so nothing flashes.
+ */
+export async function setLocale(next: string): Promise<void> {
+  if (!isLocale(next)) return;
+
+  const cookieStore = await cookies();
+  cookieStore.set(LOCALE_COOKIE, next, {
+    path: "/",
+    maxAge: LOCALE_COOKIE_MAX_AGE,
+    sameSite: "lax",
+  });
+
+  refreshApp();
+}
+
+// ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 
@@ -36,7 +61,9 @@ export async function signIn(
 ): Promise<ActionResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { ok: false, error: "Email and password are required." };
+  if (!email || !password) {
+    return { ok: false, error: (await getT()).t.actions.credentialsRequired };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -52,9 +79,10 @@ export async function signUp(
 ): Promise<ActionResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { ok: false, error: "Email and password are required." };
+  const { t } = await getT();
+  if (!email || !password) return { ok: false, error: t.actions.credentialsRequired };
   if (password.length < 8) {
-    return { ok: false, error: "Password must be at least 8 characters." };
+    return { ok: false, error: t.actions.passwordTooShort };
   }
 
   const supabase = await createClient();
@@ -66,7 +94,7 @@ export async function signUp(
   if (!data.session) {
     return {
       ok: true,
-      message: "Account created. Check your email to confirm it, then sign in.",
+      message: t.actions.confirmEmail,
     };
   }
 
@@ -90,15 +118,16 @@ export async function addExpense(
   formData: FormData,
 ): Promise<ActionResult> {
   const { supabase, user } = await requireUser();
+  const { t } = await getT();
 
   const amount = parseAmount(String(formData.get("amount") ?? ""));
-  if (amount === null) return { ok: false, error: "Enter an amount greater than zero." };
+  if (amount === null) return { ok: false, error: t.actions.amountRequired };
 
   const category = String(formData.get("category") ?? "").trim();
-  if (!category) return { ok: false, error: "Pick a category." };
+  if (!category) return { ok: false, error: t.actions.categoryRequired };
 
   const spentOn = String(formData.get("spent_on") ?? "").trim() || today();
-  if (!ISO_DATE.test(spentOn)) return { ok: false, error: "That date isn't valid." };
+  if (!ISO_DATE.test(spentOn)) return { ok: false, error: t.actions.invalidDate };
 
   const note = String(formData.get("note") ?? "").trim().slice(0, 280) || null;
 
@@ -117,18 +146,19 @@ export async function updateExpense(
   formData: FormData,
 ): Promise<ActionResult> {
   const { supabase } = await requireUser();
+  const { t } = await getT();
 
   const id = String(formData.get("id") ?? "");
-  if (!id) return { ok: false, error: "Missing expense." };
+  if (!id) return { ok: false, error: t.actions.missingExpense };
 
   const amount = parseAmount(String(formData.get("amount") ?? ""));
-  if (amount === null) return { ok: false, error: "Enter an amount greater than zero." };
+  if (amount === null) return { ok: false, error: t.actions.amountRequired };
 
   const category = String(formData.get("category") ?? "").trim();
-  if (!category) return { ok: false, error: "Pick a category." };
+  if (!category) return { ok: false, error: t.actions.categoryRequired };
 
   const spentOn = String(formData.get("spent_on") ?? "").trim();
-  if (!ISO_DATE.test(spentOn)) return { ok: false, error: "That date isn't valid." };
+  if (!ISO_DATE.test(spentOn)) return { ok: false, error: t.actions.invalidDate };
 
   const note = String(formData.get("note") ?? "").trim().slice(0, 280) || null;
 
@@ -162,10 +192,11 @@ export async function addCategory(
   formData: FormData,
 ): Promise<ActionResult> {
   const { supabase, user } = await requireUser();
+  const { t } = await getT();
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { ok: false, error: "Enter a category name." };
-  if (name.length > 40) return { ok: false, error: "Keep the name under 40 characters." };
+  if (!name) return { ok: false, error: t.actions.categoryNameRequired };
+  if (name.length > 40) return { ok: false, error: t.actions.categoryNameTooLong };
 
   const { data: last } = await supabase
     .from("categories")
@@ -183,7 +214,7 @@ export async function addCategory(
   if (error) {
     return {
       ok: false,
-      error: error.code === "23505" ? "That category already exists." : error.message,
+      error: error.code === "23505" ? t.actions.categoryExists : error.message,
     };
   }
 
@@ -217,7 +248,7 @@ export async function setMonthlyBudget(
   const raw = String(formData.get("monthly_budget") ?? "").trim();
   const budget = raw === "" ? null : parseAmount(raw);
   if (raw !== "" && budget === null) {
-    return { ok: false, error: "Enter a budget greater than zero, or leave it blank." };
+    return { ok: false, error: (await getT()).t.actions.budgetInvalid };
   }
 
   const { error } = await supabase

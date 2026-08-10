@@ -1,6 +1,9 @@
 import { Card, Skeleton } from "@/components/ui";
+import { getT } from "@/lib/i18n/server";
 
-export default function WeekLoading() {
+export default async function WeekLoading() {
+  const { t } = await getT();
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -13,15 +16,15 @@ export default function WeekLoading() {
         <Skeleton className="h-[72px]" />
       </div>
 
-      <Card title="Daily spending">
+      <Card title={t.week.dailySpending}>
         <Skeleton className="h-40" />
       </Card>
 
-      <Card title="By category">
+      <Card title={t.week.byCategory}>
         <Skeleton className="h-24" />
       </Card>
 
-      <Card title="This week's expenses">
+      <Card title={t.week.expenses}>
         <Skeleton className="h-32" />
       </Card>
     </div>

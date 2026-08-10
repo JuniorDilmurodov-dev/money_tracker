@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { signIn, signUp } from "@/app/actions";
 import { ErrorText } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/types";
 
 type Mode = "signin" | "signup";
@@ -28,6 +29,7 @@ function SubmitButton({ label }: { label: string }) {
  * leave the previous result on screen — which reads as a stale error.
  */
 function ModeForm({ mode }: { mode: Mode }) {
+  const t = useT();
   const [state, formAction] = useActionState<ActionResult | null, FormData>(
     mode === "signin" ? signIn : signUp,
     null,
@@ -36,7 +38,7 @@ function ModeForm({ mode }: { mode: Mode }) {
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-ink-3">Email</span>
+        <span className="text-xs text-ink-3">{t.login.email}</span>
         <input
           name="email"
           type="email"
@@ -47,7 +49,7 @@ function ModeForm({ mode }: { mode: Mode }) {
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-ink-3">Password</span>
+        <span className="text-xs text-ink-3">{t.login.password}</span>
         <input
           name="password"
           type="password"
@@ -66,20 +68,21 @@ function ModeForm({ mode }: { mode: Mode }) {
       )}
 
       <div className="mt-2">
-        <SubmitButton label={mode === "signin" ? "Sign in" : "Create account"} />
+        <SubmitButton label={mode === "signin" ? t.login.signIn : t.login.createAccount} />
       </div>
     </form>
   );
 }
 
 export function LoginForm() {
+  const t = useT();
   const [mode, setMode] = useState<Mode>("signin");
 
   return (
     <div>
       <div
         role="tablist"
-        aria-label="Account"
+        aria-label={t.login.account}
         className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-line bg-surface-2 p-1"
       >
         {(["signin", "signup"] as const).map((value) => (
@@ -93,7 +96,7 @@ export function LoginForm() {
               mode === value ? "bg-surface-1 text-ink" : "text-ink-3"
             }`}
           >
-            {value === "signin" ? "Sign in" : "Create account"}
+            {value === "signin" ? t.login.signIn : t.login.createAccount}
           </button>
         ))}
       </div>

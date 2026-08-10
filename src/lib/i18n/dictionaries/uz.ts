@@ -150,6 +150,25 @@ export const uz: Dictionary = {
     saved: "Saqlandi ✓",
   },
 
+  pwa: {
+    install: "Ilovani o'rnatish",
+    description:
+      "Xarajatni bosh ekranga qo'shing. U brauzersiz ochiladi va bir zumda ishga tushadi.",
+    installButton: "O'rnatish",
+    installed: "O'rnatilgan ✓",
+    iosHint:
+      "Safarida \"Ulashish\" tugmasini bosing va \"Bosh ekranga qo'shish\"ni tanlang.",
+    unavailable:
+      "Brauzeringiz ilovani o'z menyusidan o'rnatishni taklif qiladi.",
+    bannerTitle: "Xarajatni o'rnating",
+    bannerBody: "Bir bosishda ochish uchun bosh ekranga qo'shing.",
+    dismiss: "Hozir emas",
+    offlineTitle: "Internet yo'q",
+    offlineBody:
+      "Xarajatlaringizni yuklash uchun ulanish kerak. Saqlanganlarning hammasi joyida.",
+    retry: "Qayta urinish",
+  },
+
   expense: {
     amount: "Miqdor",
     date: "Sana",

@@ -141,6 +141,44 @@ Two things dominate how fast a page feels, and both are easy to get wrong:
    back to a legacy shared secret would make `getClaims()` fall back to a
    network call and the win disappears.
 
+## 7. Installing it as an app
+
+Xarajat is a PWA: on a phone it installs to the home screen, opens without
+browser chrome, and cold-starts from cache. There is no separate build and
+nothing to submit to an app store — a push to `main` updates every install.
+
+- **Android / Chrome** — a banner appears at the top of the app, or use
+  **Settings → Install app**. Both fire Chrome's own install prompt.
+- **iOS / Safari** — Safari has no install API, so it has to be done by hand:
+  **Share → Add to Home Screen**. Settings → Install app says as much.
+
+Requires HTTPS, which the Vercel deployment already has. On `localhost` it works
+too (browsers treat localhost as secure); on a LAN IP over plain HTTP it does not
+— the service worker will refuse to register.
+
+The pieces, if you need to change them:
+
+| File | Does |
+|---|---|
+| `src/app/manifest.ts` | name, icons, standalone display, long-press shortcuts |
+| `src/app/icon-*.png/route.tsx` | 192/512 rasters + a padded maskable one, rendered at build time from the same mark as `icon.svg` |
+| `public/sw.js` | the service worker — cache rules and the offline fallback |
+| `src/app/offline/page.tsx` | what a navigation shows with no network |
+| `src/lib/install-store.ts` | holds Chrome's one-shot `beforeinstallprompt` |
+| `src/components/pwa.tsx` | worker registration, the banner, the Settings card |
+
+**The service worker never caches your data.** Every route in this app is
+per-user, so caching a rendered page would let it outlive the session. Only
+hashed build assets under `/_next/static/` and the public `/offline` page are
+stored; API routes, RSC payloads, `/login` and every Server Action go straight to
+the network. This is also why offline shows a fallback page rather than your last
+expenses.
+
+**After changing `public/sw.js`, bump `VERSION` in it.** Installed clients
+delete every cache that doesn't match the current name on activation — that is
+what evicts the previous build. Skip the bump and old clients keep their old
+cached assets.
+
 > **Dark mode extensions.** This app is already dark by default. Browser
 > extensions like Dark Reader will re-darken it and flatten the contrast the
 > colour palette was chosen for — add the site to the extension's exception

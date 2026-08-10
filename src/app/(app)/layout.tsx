@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { getSessionUser } from "@/lib/supabase/server";
 import { Nav } from "@/components/nav";
+import { InstallBanner } from "@/components/pwa";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getT } from "@/lib/i18n/server";
@@ -18,7 +19,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     // The bottom nav is fixed and pads itself for the home indicator, so the
     // scrolling content has to clear both or the last card hides behind it.
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 sm:pb-10">
+    // The top inset is zero in a browser tab and non-zero only when the app is
+    // launched standalone on a device that puts something above the webview.
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] sm:pb-10">
       <header className="mb-4 flex items-center justify-between gap-3">
         <Link href="/" className="text-base font-semibold tracking-tight">
           {t.appName}
@@ -41,6 +44,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="hidden sm:mb-4 sm:block">
         <Nav />
       </div>
+
+      <InstallBanner />
 
       <main className="flex-1">{children}</main>
 

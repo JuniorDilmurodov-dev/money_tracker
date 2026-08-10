@@ -154,6 +154,26 @@ export const en = {
     saved: "Saved ✓",
   },
 
+  pwa: {
+    install: "Install app",
+    description:
+      "Add Xarajat to your home screen. It opens without browser chrome and starts instantly.",
+    installButton: "Install",
+    installed: "Installed ✓",
+    /** Safari has no install API — the user has to do it by hand. */
+    iosHint:
+      "In Safari, tap Share and then \"Add to Home Screen\".",
+    unavailable:
+      "Your browser will offer to install this app from its own menu.",
+    bannerTitle: "Install Xarajat",
+    bannerBody: "Add it to your home screen for one-tap access.",
+    dismiss: "Not now",
+    offlineTitle: "You're offline",
+    offlineBody:
+      "Xarajat needs a connection to load your expenses. Anything already saved is safe.",
+    retry: "Try again",
+  },
+
   expense: {
     amount: "Amount",
     date: "Date",

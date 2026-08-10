@@ -91,10 +91,13 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except Next internals, static assets, and the icon/manifest
-    // routes. Those last two have no file extension to match on, and they are
-    // fetched by the OS with no session — gated, iOS would save the login
-    // page's HTML as the home-screen icon.
-    "/((?!_next/static|_next/image|apple-icon|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Everything except Next internals, static assets, and the PWA routes.
+    // The icon and manifest routes have no file extension to match on, and they
+    // are fetched by the OS with no session — gated, iOS would save the login
+    // page's HTML as the home-screen icon. `sw.js` is the same story with a
+    // worse failure: a redirect there hands the browser HTML where it expects
+    // JavaScript, and registration fails outright. `/offline` has to answer on
+    // a device that can't reach the network to refresh a session at all.
+    "/((?!_next/static|_next/image|apple-icon|manifest\\.webmanifest|sw\\.js|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

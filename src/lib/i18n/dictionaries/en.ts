@@ -174,6 +174,21 @@ export const en = {
     retry: "Try again",
   },
 
+  notifications: {
+    title: "Reminders",
+    description: "Get a nudge in the evening if you haven't logged anything that day.",
+    enableButton: "Turn on reminders",
+    enabled: "On ✓",
+    disableButton: "Turn off",
+    /** Notification permission on iOS can only be requested once installed. */
+    iosHint:
+      "Install Xarajat to your home screen first (Settings above), then come back here.",
+    deniedHint:
+      "Notifications are blocked for this site. Enable them from your browser's site settings.",
+    unavailable: "Not supported in this browser.",
+    failed: "Could not turn on reminders.",
+  },
+
   expense: {
     amount: "Amount",
     date: "Date",
@@ -225,6 +240,9 @@ export const en = {
     modelNoText: "The model returned no text.",
     modelBadJson: "The model returned malformed JSON.",
     rateLimited: "Rate limited by OpenAI. Try again in a moment.",
+    insightsDisabled: "Insights are switched off on this server.",
+    dailyLimitReached: (limit: number) =>
+      `You've used all ${limit} insights for today. The limit resets at midnight — your saved insights are still here.`,
     badApiKey: "Invalid OPENAI_API_KEY.",
     modelUnavailable: (model: string) =>
       `Model "${model}" is not available on this account.`,

@@ -63,8 +63,10 @@ while developing, and to your deployed URL once it's live.
 | `anon` / `publishable` key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 
 The anon key is designed to be public — row level security is what protects the
-data, which is why step 2 matters. **Never** put the `service_role` / secret key in
-this app.
+data, which is why step 2 matters. **Never** put the `service_role` / secret key
+anywhere it could reach the browser. The one exception is the push-notification
+cron route (§8), which needs it server-side to check every subscribed user's
+expenses — no session to scope RLS to inside a scheduled job.
 
 Then get an API key from
 [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
@@ -85,6 +87,17 @@ NEXT_PUBLIC_APP_TIMEZONE=Asia/Tashkent
 `.env.local` is gitignored. `OPENAI_API_KEY` is read only in the route handler
 on the server and never reaches the browser.
 
+Insights are billed to that key no matter who pressed the button, so each
+account may generate **3 per day** by default. Set `INSIGHTS_DAILY_LIMIT` to
+change it, or to `0` to turn insights off. Raise it freely while the app is
+only yours; leave it low before you let anyone else sign up, and set a hard
+spend cap on the OpenAI account as well — the limit here bounds what one
+account can spend, not how many accounts exist.
+
+Push notifications are optional — see §8 for the four extra variables they
+need. Without them the app works exactly as before; the Settings notification
+card just won't appear.
+
 ## 5. Run it
 
 ```bash
@@ -102,10 +115,11 @@ Live at **https://money-tracker-omega-three.vercel.app**, hosted on Vercel and
 connected to this repository — pushes to `main` deploy automatically, and pull
 requests get preview URLs.
 
-The same four environment variables are set in the Vercel project for the
+The same environment variables are set in the Vercel project for the
 production, preview and development environments. They are not read from
 `.env.local` in a deployed build, so **adding a new variable means adding it in
-Vercel too**, or the deployed app will fall back to its "not set" error path.
+Vercel too**, or the deployed app will fall back to its "not set" error path
+(or, for the push variables, the feature silently staying off).
 
 Supabase's auth URLs must match wherever the app runs:
 
@@ -184,6 +198,32 @@ cached assets.
 > colour palette was chosen for — add the site to the extension's exception
 > list rather than debugging the CSS.
 
+## 8. Push notifications
+
+Optional. When set up, Settings gets a card to turn on a single daily
+reminder — sent once at 20:00 in `NEXT_PUBLIC_APP_TIMEZONE`, only to accounts
+that haven't logged an expense yet that day.
+
+1. Generate a key pair: `npx web-push generate-vapid-keys`.
+2. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and
+   `VAPID_SUBJECT` (a `mailto:` address) from `.env.local.example`.
+3. Set `SUPABASE_SERVICE_ROLE_KEY` from **Project Settings → API Keys**. This
+   is the one place in the app that uses it — `src/lib/supabase/admin.ts` —
+   and only the cron route (`src/app/api/push/send-reminders/route.ts`)
+   imports it.
+4. Set `CRON_SECRET` to any random string. `vercel.json` schedules Vercel Cron
+   to call the reminder route daily; Vercel signs that call with the secret
+   as an `Authorization: Bearer` header automatically.
+5. Apply `supabase/migrations/20260811000000_push_subscriptions.sql`, same as
+   any other migration (§2).
+
+On iOS, notification permission can only be requested once the app is
+installed to the home screen (§7) — the Settings card says so rather than
+showing a button that would silently fail. Android has no such restriction.
+
+**After changing `public/sw.js`, bump `VERSION`** — same rule as §7, and it
+covers this file too.
+
 ---
 
 ## How it's put together
@@ -227,3 +267,12 @@ light and dark themes.
 period and last, plus repeated-purchase counts — never your raw expense list. It
 runs on button press only, uses `gpt-4o-mini` (override with `OPENAI_MODEL`) with a
 400-token cap, and returns plain text.
+
+The daily cap is counted from the `insights` table itself — one row is written
+per generation, so the saved history doubles as the usage meter and no separate
+quota table can drift out of step with it. The count is taken after the
+free early exits (not signed in, nothing logged this period) and before the
+model call, so a day's allowance is only spent on requests that reach OpenAI.
+If the count query fails the request is refused rather than allowed through: a
+quota that can't be read can't be enforced, and the usual cause is the
+`insights` migration not having been applied.

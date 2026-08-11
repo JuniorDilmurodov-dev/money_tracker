@@ -19,7 +19,7 @@
 
 // Bump on any change to PRECACHE or to the rules below — `activate` deletes
 // every cache that doesn't match, which is what evicts the old build.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `xarajat-${VERSION}`;
 
 const OFFLINE_URL = "/offline";
@@ -105,4 +105,36 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+
+/**
+ * Push payloads are kept deliberately generic — a reminder to open the app,
+ * never an amount or balance — so nothing sensitive sits in the OS
+ * notification tray. This is the Push API, not Cache Storage, so it doesn't
+ * touch the "never cache user data" rule above.
+ */
+self.addEventListener("push", (event) => {
+  const data = event.data?.json() ?? {};
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? "Xarajat", {
+      body: data.body ?? "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: data.url ?? "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        const url = event.notification.data?.url ?? "/";
+        const existing = clientList.find((client) => client.url.includes(url));
+        if (existing) return existing.focus();
+        return self.clients.openWindow(url);
+      }),
+  );
 });

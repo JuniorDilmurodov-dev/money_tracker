@@ -3,6 +3,7 @@ import { signOut } from "@/app/actions";
 import { getCategories, getMonthlyBudget } from "@/lib/queries";
 import { getSessionUser } from "@/lib/supabase/server";
 import { InstallCard } from "@/components/pwa";
+import { NotificationCard } from "@/components/notifications";
 import { BudgetForm, CategoryManager } from "./forms";
 import { getT } from "@/lib/i18n/server";
 
@@ -32,6 +33,10 @@ export default async function SettingsPage() {
 
       <Card title={t.pwa.install}>
         <InstallCard />
+      </Card>
+
+      <Card title={t.notifications.title}>
+        <NotificationCard />
       </Card>
 
       <Card title={t.settings.account}>

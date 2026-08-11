@@ -169,6 +169,20 @@ export const uz: Dictionary = {
     retry: "Qayta urinish",
   },
 
+  notifications: {
+    title: "Eslatmalar",
+    description: "Kunni xarajat kiritmasdan o'tkazsangiz, kechqurun eslatib qo'yamiz.",
+    enableButton: "Eslatmalarni yoqish",
+    enabled: "Yoqilgan ✓",
+    disableButton: "O'chirish",
+    iosHint:
+      "Avval Xarajatni bosh ekranga o'rnating (yuqoridagi bo'lim), keyin bu yerga qayting.",
+    deniedHint:
+      "Bu sayt uchun bildirishnomalar bloklangan. Brauzeringizning sayt sozlamalaridan yoqing.",
+    unavailable: "Bu brauzerda qo'llab-quvvatlanmaydi.",
+    failed: "Eslatmalarni yoqib bo'lmadi.",
+  },
+
   expense: {
     amount: "Miqdor",
     date: "Sana",
@@ -220,6 +234,9 @@ export const uz: Dictionary = {
     modelNoText: "Model hech qanday matn qaytarmadi.",
     modelBadJson: "Model noto'g'ri JSON qaytardi.",
     rateLimited: "OpenAI so'rovlar sonini cheklab qo'ydi. Birozdan so'ng urinib ko'ring.",
+    insightsDisabled: "Bu serverda tahlillar o'chirib qo'yilgan.",
+    dailyLimitReached: (limit: number) =>
+      `Bugungi ${limit} ta tahlilni ishlatib bo'ldingiz. Cheklov yarim tunda yangilanadi — saqlangan tahlillaringiz joyida turibdi.`,
     badApiKey: "OPENAI_API_KEY yaroqsiz.",
     modelUnavailable: (model: string) =>
       `"${model}" modeli bu hisobda mavjud emas.`,

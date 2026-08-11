@@ -263,3 +263,47 @@ export async function setMonthlyBudget(
   refreshApp();
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Push notifications
+// ---------------------------------------------------------------------------
+
+/**
+ * Called directly from a button's onClick, not through a <form> — Server
+ * Actions can be invoked as plain async functions outside forms too, taking
+ * any serializable argument rather than only FormData.
+ *
+ * `onConflict: "endpoint"` makes this an upsert: the same browser
+ * installation subscribing twice (e.g. after a permission reset) replaces its
+ * row rather than accumulating a duplicate, and a device handed to a
+ * different account re-points the existing row at the new user.
+ */
+export async function subscribePush(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}): Promise<ActionResult> {
+  const { supabase, user } = await requireUser();
+
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: user.id,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    },
+    { onConflict: "endpoint" },
+  );
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function unsubscribePush(endpoint: string): Promise<ActionResult> {
+  const { supabase } = await requireUser();
+
+  // RLS scopes this to the caller's own rows regardless.
+  const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

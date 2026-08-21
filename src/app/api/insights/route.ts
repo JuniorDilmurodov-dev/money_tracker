@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import {
+  countInsightsToday,
   getExpensesInRange,
   saveInsight,
   sumExpenses,
@@ -23,6 +24,17 @@ import { isLocale, type Locale } from "@/lib/i18n/config";
 import type { Expense } from "@/lib/types";
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+
+/**
+ * Generations allowed per account per day. This is the only thing standing
+ * between a public signup form and an OpenAI bill: the panel's button can be
+ * pressed as often as someone likes, and every press that reaches the model
+ * costs the operator money, not the user.
+ */
+const DAILY_LIMIT = (() => {
+  const configured = Number(process.env.INSIGHTS_DAILY_LIMIT ?? 3);
+  return Number.isFinite(configured) && configured >= 0 ? configured : 3;
+})();
 
 /**
  * One language per call. The model used to write all three at once, which
@@ -154,6 +166,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: t.actions.notSignedIn }, { status: 401 });
   }
 
+  // A limit of zero is the kill switch, so it answers before any other work.
+  if (DAILY_LIMIT === 0) {
+    return Response.json({ error: t.actions.insightsDisabled }, { status: 503 });
+  }
+
   if (!process.env.OPENAI_API_KEY) {
     return Response.json({ error: t.actions.missingApiKey }, { status: 500 });
   }
@@ -195,6 +212,23 @@ export async function POST(request: NextRequest) {
       ? `week of ${formatDayMonth(currentRange.from, "en")} to ${formatDayMonth(currentRange.to, "en")}`
       : formatMonthYear(currentRange.from, "en");
   const previousLabel = period === "week" ? "last week" : "last month";
+
+  // Checked here rather than up with the auth guard so the free paths above —
+  // a signed-in reader with no expenses yet — never burn a day's quota. A pair
+  // of simultaneous requests can both read the same count and slip through;
+  // one extra call on a limit of three is not worth a lock over.
+  try {
+    if (await countInsightsToday() >= DAILY_LIMIT) {
+      return Response.json(
+        { error: t.actions.dailyLimitReached(DAILY_LIMIT) },
+        { status: 429 },
+      );
+    }
+  } catch {
+    // An uncountable quota is an unenforceable one, so this fails closed: the
+    // usual cause is the `insights` migration never having been applied.
+    return Response.json({ error: t.actions.insightsFailed }, { status: 500 });
+  }
 
   const openai = new OpenAI();
 

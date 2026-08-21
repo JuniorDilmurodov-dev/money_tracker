@@ -27,6 +27,45 @@ export function today(): ISODate {
   }).format(new Date());
 }
 
+/** How far ahead of UTC the app timezone is at a given instant, in ms. */
+function zoneOffsetMs(instant: Date): number {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+
+  const part: Record<string, string> = {};
+  for (const p of parts) part[p.type] = p.value;
+
+  const wallClock = Date.UTC(
+    Number(part.year),
+    Number(part.month) - 1,
+    Number(part.day),
+    Number(part.hour) % 24, // some locales render midnight as hour 24
+    Number(part.minute),
+    Number(part.second),
+  );
+  return wallClock - instant.getTime();
+}
+
+/**
+ * The instant at which an app-timezone day begins — the boundary to compare
+ * `timestamptz` columns against. The offset is read twice because the first
+ * reading is taken at the wrong instant whenever a DST change sits between the
+ * two; Tashkent has no DST, but the app timezone is configurable.
+ */
+export function startOfDay(iso: ISODate): Date {
+  const naive = Date.parse(`${iso}T00:00:00Z`);
+  const approx = new Date(naive - zoneOffsetMs(new Date(naive)));
+  return new Date(naive - zoneOffsetMs(approx));
+}
+
 /** Treat an ISO date as noon UTC so DST/offset shifts can never move the day. */
 function toDate(iso: ISODate): Date {
   const [y, m, d] = iso.split("-").map(Number);

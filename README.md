@@ -53,6 +53,57 @@ npx supabase db push --db-url "postgresql://postgres:PASSWORD@db.YOUR-REF.supaba
 **Authentication → URL Configuration**: set **Site URL** to `http://localhost:3000`
 while developing, and to your deployed URL once it's live.
 
+**Authentication → Emails → Confirm signup** (recommended). The stock template
+uses `{{ .ConfirmationURL }}`, which points at Supabase's `/auth/v1/verify`.
+That confirms the account fine — but it then redirects to the bare Site URL,
+where the app has no session to pick up, so the reader is bounced to `/login`
+and asked for the password they just set. It looks like the link failed.
+Pointing the link at this app's callback instead:
+
+```
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
+```
+
+lets `src/app/auth/confirm/route.ts` do the verification itself, so clicking
+the link signs you straight in. The route also accepts the `?code=` form that
+`{{ .ConfirmationURL }}` produces, so the stock template keeps working if you'd
+rather not touch it.
+
+### Custom SMTP is not optional
+
+Supabase's built-in email service sends **2 messages per hour for the whole
+project**. It exists to let you click through signup once; it cannot run a real
+deployment. Past that ceiling `signUp` returns `over_email_send_rate_limit` and
+no account is created and no mail goes out — which looks, to the person at the
+form, exactly like the app silently doing nothing. Worse, it feeds on itself:
+no email arrives, so they try again, and each retry spends another message.
+
+Two settings fix it, and **both are needed** — this is the part that catches
+people out:
+
+1. **Project Settings → Authentication → SMTP Settings.** Enable custom SMTP
+   and fill in a provider's credentials.
+2. **Authentication → Rate Limits → emails sent per hour.** Turning on custom
+   SMTP only lifts the ceiling from 2/hour to 30/hour. Raise it yourself to
+   match the provider's real allowance.
+
+This deployment runs on `*.vercel.app`, so there is no domain to add SPF/DKIM
+records to and domain-verifying providers (Resend, Mailgun) can't send to
+arbitrary recipients. Brevo verifies a single **sender address** instead, which
+works without owning a domain — 300 messages/day on the free plan.
+
+| Supabase field | Value |
+|---|---|
+| Host | `smtp-relay.brevo.com` |
+| Port | `587` |
+| Username | the SMTP login from Brevo (looks like `…@smtp-brevo.com`) |
+| Password | a Brevo **SMTP key** — not the account password |
+| Sender email | an address verified under Brevo → Senders |
+| Sender name | `Xarajat` |
+
+A real domain is still the better long-term answer: deliverability from a
+free-mail sender address is at the mercy of that provider's DMARC policy.
+
 ## 4. Get the environment variables
 
 **Project Settings → API Keys** (or **Data API**):

@@ -205,6 +205,10 @@ export const uz: Dictionary = {
     password: "Parol",
     signIn: "Kirish",
     createAccount: "Hisob yaratish",
+    linkExpired:
+      "Bu tasdiqlash havolasining muddati o'tgan yoki u allaqachon ishlatilgan. Yangisini olish uchun hisobni qaytadan yarating.",
+    linkInvalid:
+      "Bu tasdiqlash havolasi to'liq emas. Eng oxirgi emailni oching va o'sha yerdagi havolani bosing.",
   },
 
   error: {
@@ -221,6 +225,17 @@ export const uz: Dictionary = {
     passwordTooShort: "Parol kamida 8 ta belgidan iborat bo'lishi kerak.",
     confirmEmail:
       "Hisob yaratildi. Emailingizni tasdiqlang, so'ng tizimga kiring.",
+    authEmailRateLimited:
+      "Tasdiqlash xati yuborilmadi — ilova soatlik email limitiga yetdi. Bir soatdan keyin qayta urinib ko'ring.",
+    authEmailNotAuthorized:
+      "Ilova hozircha bu manzilga xat yubora olmaydi. Boshqa manzilni sinab ko'ring yoki ma'mur bilan bog'laning.",
+    authTooManyRequests: "Juda ko'p urinish. Biroz kuting va qayta urinib ko'ring.",
+    authEmailNotConfirmed:
+      "Bu email hali tasdiqlanmagan. Tasdiqlash havolasini qidiring — spam papkasini ham tekshiring.",
+    authInvalidCredentials: "Email va parol mos kelmadi.",
+    authEmailExists: "Bu email bilan hisob allaqachon mavjud. Tizimga kiring.",
+    authWeakPassword: "Bu parolni topish juda oson. Uzunrog'ini tanlang.",
+    authSignupDisabled: "Bu serverda yangi hisob yaratish o'chirilgan.",
     amountRequired: "Noldan katta miqdor kiriting.",
     categoryRequired: "Kategoriyani tanlang.",
     invalidDate: "Bu sana noto'g'ri.",

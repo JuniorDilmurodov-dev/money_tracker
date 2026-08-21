@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +9,7 @@ import { parseAmount } from "@/lib/money";
 import { today } from "@/lib/dates";
 import { getT } from "@/lib/i18n/server";
 import { isLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 import type { ActionResult } from "@/lib/types";
 
 /**
@@ -55,19 +56,65 @@ export async function setLocale(next: string): Promise<void> {
 // Auth
 // ---------------------------------------------------------------------------
 
+/**
+ * Where the confirmation email should send the reader back to.
+ *
+ * Read off the request rather than an env var so a preview deployment and
+ * `localhost` each confirm against themselves, instead of mailing everyone a
+ * link into production. Server Action POSTs always carry `Origin` — Next
+ * rejects them otherwise — but if it is ever missing, returning undefined
+ * lets Supabase fall back to the project's Site URL rather than building a
+ * broken link. The origin has to be in Supabase's Redirect URLs allow-list
+ * (README §5) or Supabase falls back to Site URL anyway.
+ */
+async function confirmRedirectUrl(): Promise<string | undefined> {
+  const origin = (await headers()).get("origin");
+  return origin ? `${origin}/auth/confirm` : undefined;
+}
+
+/**
+ * Supabase answers in English no matter which language the reader picked, and
+ * some of its wording explains nothing to the person reading it — "email rate
+ * limit exceeded" is a fact about the mail quota, not an instruction. Only the
+ * codes a signed-out reader can actually provoke are mapped; anything else
+ * falls through to Supabase's own text, which beats a blank box.
+ */
+function authError(error: { code?: string; message: string }, t: Dictionary): string {
+  switch (error.code) {
+    case "over_email_send_rate_limit":
+      return t.actions.authEmailRateLimited;
+    case "email_address_not_authorized":
+      return t.actions.authEmailNotAuthorized;
+    case "over_request_rate_limit":
+      return t.actions.authTooManyRequests;
+    case "email_not_confirmed":
+      return t.actions.authEmailNotConfirmed;
+    case "invalid_credentials":
+      return t.actions.authInvalidCredentials;
+    case "user_already_exists":
+    case "email_exists":
+      return t.actions.authEmailExists;
+    case "weak_password":
+      return t.actions.authWeakPassword;
+    case "signup_disabled":
+      return t.actions.authSignupDisabled;
+    default:
+      return error.message;
+  }
+}
+
 export async function signIn(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) {
-    return { ok: false, error: (await getT()).t.actions.credentialsRequired };
-  }
+  const { t } = await getT();
+  if (!email || !password) return { ok: false, error: t.actions.credentialsRequired };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: authError(error, t) };
 
   refreshApp();
   redirect("/");
@@ -86,8 +133,12 @@ export async function signUp(
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) return { ok: false, error: error.message };
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: await confirmRedirectUrl() },
+  });
+  if (error) return { ok: false, error: authError(error, t) };
 
   // With email confirmation on, there's no session yet. That isn't a failure —
   // return it as a notice so the UI doesn't render it as an error.

@@ -211,6 +211,10 @@ export const en = {
     password: "Password",
     signIn: "Sign in",
     createAccount: "Create account",
+    linkExpired:
+      "That confirmation link has expired or was already used. Create the account again to get a fresh one.",
+    linkInvalid:
+      "That confirmation link isn't complete. Open the most recent email and tap the link there directly.",
   },
 
   error: {
@@ -227,6 +231,17 @@ export const en = {
     credentialsRequired: "Email and password are required.",
     passwordTooShort: "Password must be at least 8 characters.",
     confirmEmail: "Account created. Check your email to confirm it, then sign in.",
+    authEmailRateLimited:
+      "The confirmation email couldn't be sent — this app has hit its hourly email limit. Try again in an hour.",
+    authEmailNotAuthorized:
+      "This app can't send email to that address yet. Try a different one, or contact whoever runs it.",
+    authTooManyRequests: "Too many attempts. Wait a moment and try again.",
+    authEmailNotConfirmed:
+      "This email hasn't been confirmed yet. Look for the confirmation link — check your spam folder too.",
+    authInvalidCredentials: "That email and password don't match.",
+    authEmailExists: "An account with this email already exists. Sign in instead.",
+    authWeakPassword: "That password is too easy to guess. Try a longer one.",
+    authSignupDisabled: "New accounts are switched off on this server.",
     amountRequired: "Enter an amount greater than zero.",
     categoryRequired: "Pick a category.",
     invalidDate: "That date isn't valid.",

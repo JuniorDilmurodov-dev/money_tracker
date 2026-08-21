@@ -1,7 +1,7 @@
 // Server-only: every function here creates a cookie-bound Supabase client.
 import { createClient } from "@/lib/supabase/server";
 import type { ISODate, Range } from "@/lib/dates";
-import { eachDay } from "@/lib/dates";
+import { eachDay, startOfDay, today } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
 import type { Category, CategoryTotal, DailyTotal, Expense, Insight } from "@/lib/types";
 
@@ -105,6 +105,22 @@ export async function getInsightsHistory(limit = 10): Promise<Insight[]> {
 
   if (error) throw new Error(`Could not load insights: ${error.message}`);
   return (data ?? []) as Insight[];
+}
+
+/**
+ * How many insights this account has generated since midnight in the app
+ * timezone. Every generation inserts a row, so the table is its own usage
+ * counter — and row level security means this only ever counts the caller's.
+ */
+export async function countInsightsToday(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("insights")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", startOfDay(today()).toISOString());
+
+  if (error) throw new Error(`Could not count insights: ${error.message}`);
+  return count ?? 0;
 }
 
 export async function saveInsight(input: {

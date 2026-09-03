@@ -115,9 +115,9 @@ free-mail sender address is at the mercy of that provider's DMARC policy.
 
 The anon key is designed to be public — row level security is what protects the
 data, which is why step 2 matters. **Never** put the `service_role` / secret key
-anywhere it could reach the browser. The one exception is the push-notification
-cron route (§8), which needs it server-side to check every subscribed user's
-expenses — no session to scope RLS to inside a scheduled job.
+anywhere it could reach the browser. Two routes use it server-side, where there
+is no user session to scope RLS to: the push-notification cron route (§8) and
+the admin dashboard (§9).
 
 Then get an API key from
 [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
@@ -148,6 +148,10 @@ account can spend, not how many accounts exist.
 Push notifications are optional — see §8 for the four extra variables they
 need. Without them the app works exactly as before; the Settings notification
 card just won't appear.
+
+The admin dashboard at `/admin` is optional too — see §9. Set `ADMIN_EMAIL`
+to the one account allowed to view it; left unset, `/admin` redirects everyone
+away.
 
 ## 5. Run it
 
@@ -258,10 +262,9 @@ that haven't logged an expense yet that day.
 1. Generate a key pair: `npx web-push generate-vapid-keys`.
 2. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and
    `VAPID_SUBJECT` (a `mailto:` address) from `.env.local.example`.
-3. Set `SUPABASE_SERVICE_ROLE_KEY` from **Project Settings → API Keys**. This
-   is the one place in the app that uses it — `src/lib/supabase/admin.ts` —
-   and only the cron route (`src/app/api/push/send-reminders/route.ts`)
-   imports it.
+3. Set `SUPABASE_SERVICE_ROLE_KEY` from **Project Settings → API Keys**. It is
+   created by `src/lib/supabase/admin.ts` and imported only by the cron route
+   (`src/app/api/push/send-reminders/route.ts`) and the admin dashboard (§9).
 4. Set `CRON_SECRET` to any random string. `vercel.json` schedules Vercel Cron
    to call the reminder route daily; Vercel signs that call with the secret
    as an `Authorization: Bearer` header automatically.
@@ -275,6 +278,26 @@ showing a button that would silently fail. Android has no such restriction.
 **After changing `public/sw.js`, bump `VERSION`** — same rule as §7, and it
 covers this file too.
 
+## 9. Admin dashboard
+
+Optional. `/admin` shows whether people are actually using the app: total and
+7-day-active users, expenses added today, a 30-day activity chart, a per-user
+table (last activity and an active / fading / lost status), and weekly signup
+retention (+1 day, +7 days).
+
+1. Set `ADMIN_EMAIL` to the single account allowed in. It is compared against
+   the signed-in user's email server-side before any data is read; unset means
+   `/admin` is closed to everyone (fail closed).
+2. Set `SUPABASE_SERVICE_ROLE_KEY` (§8 step 3) — the stats span every user, so
+   the page reads through a service-role client that bypasses RLS.
+3. Apply `supabase/migrations/20260824000000_admin_stats.sql` (§2). It creates
+   the `stats_daily`, `stats_users` and `stats_retention` views. Until it runs,
+   `/admin` shows a "run this migration" notice instead of the dashboard.
+
+The numbers come from Postgres views. Client-side traffic (page views, Web
+Vitals) is handled separately by Vercel Analytics and Speed Insights, wired
+into the root layout — no env vars, live in the Vercel project's Analytics tab.
+
 ---
 
 ## How it's put together
@@ -286,6 +309,7 @@ src/
     actions.ts              every mutation, as Server Actions
     api/insights/route.ts   the only LLM call in the app
     login/                  sign in / sign up
+    admin/                  usage dashboard, gated by ADMIN_EMAIL (§9)
     (app)/                  everything behind auth: add, week, month, history, insights, settings
   components/               quick-add, expense list, charts, nav
   lib/

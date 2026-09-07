@@ -123,7 +123,9 @@ export const en = {
     subtitle: "A short read on your spending, generated on demand.",
     period: "Period",
     thisWeek: "This week",
+    lastWeek: "Last week",
     thisMonth: "This month",
+    lastMonth: "Last month",
     generate: "Generate insights",
     generating: "Reading your spending…",
     nothingSent: "Nothing is sent to the AI until you press the button.",
@@ -134,6 +136,12 @@ export const en = {
     monthOf: (date: string) => `Month of ${date}`,
     failed: "Could not generate insights.",
     unreachable: "Could not reach the server.",
+    retry: "Try again",
+    remaining: (n: number) =>
+      n === 0
+        ? "No insights left today. Resets at midnight."
+        : `${n} insight${n === 1 ? "" : "s"} left today.`,
+    fewDataHint: "Less than 3 days of data so far — a completed period may be more useful.",
   },
 
   settings: {

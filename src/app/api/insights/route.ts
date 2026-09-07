@@ -3,8 +3,10 @@ import type { NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import {
-  countInsightsToday,
   getExpensesInRange,
+  getInsightsUsedToday,
+  getLatestInsight,
+  hasExpensesSince,
   saveInsight,
   sumExpenses,
   totalsByCategory,
@@ -17,11 +19,12 @@ import {
   monthRange,
   today,
   weekRange,
+  type Range,
 } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
 import { isLocale, type Locale } from "@/lib/i18n/config";
-import type { Expense } from "@/lib/types";
+import type { Expense, InsightPeriod } from "@/lib/types";
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
@@ -65,7 +68,46 @@ Rules:
 - If there is little or no data, say so in one sentence instead of inventing a pattern.`;
 }
 
-const EMPTY_TEXT: Record<"week" | "month", Record<Locale, string>> = {
+/** Weekly and monthly periods share the same "nothing logged" copy. */
+type Granularity = "week" | "month";
+
+function granularityOf(period: InsightPeriod): Granularity {
+  return period === "this_week" || period === "last_week" ? "week" : "month";
+}
+
+/**
+ * Old clients (and old localStorage caches) still send "week"/"month" —
+ * those map onto the "this_*" variant so a saved bookmark or a stale tab
+ * keeps working instead of erroring out.
+ */
+function normalizePeriod(value: unknown): InsightPeriod {
+  if (value === "week") return "this_week";
+  if (value === "month") return "this_month";
+  if (
+    value === "this_week" ||
+    value === "last_week" ||
+    value === "this_month" ||
+    value === "last_month"
+  ) {
+    return value;
+  }
+  return "this_week";
+}
+
+function rangeForPeriod(period: InsightPeriod, now: string): Range {
+  switch (period) {
+    case "this_week":
+      return weekRange(now);
+    case "last_week":
+      return weekRange(addDays(now, -7));
+    case "this_month":
+      return monthRange(now);
+    case "last_month":
+      return monthRange(addMonths(now, -1));
+  }
+}
+
+const EMPTY_TEXT: Record<Granularity, Record<Locale, string>> = {
   week: {
     en: "Nothing logged this week yet, so there is no pattern to read. Log a few expenses and check back.",
     ru: "На этой неделе пока ничего не записано, поэтому разбирать нечего. Запишите несколько трат и загляните снова.",
@@ -166,31 +208,43 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: t.actions.notSignedIn }, { status: 401 });
   }
 
+  // Every response past this point is for a known account, so it can always
+  // report where its quota stands — including the error paths.
+  const withQuota = async (body: Record<string, unknown>, status?: number) => {
+    const used = await getInsightsUsedToday().catch(() => 0);
+    return Response.json(
+      { ...body, remaining: Math.max(DAILY_LIMIT - used, 0), limit: DAILY_LIMIT },
+      status ? { status } : undefined,
+    );
+  };
+
   // A limit of zero is the kill switch, so it answers before any other work.
   if (DAILY_LIMIT === 0) {
-    return Response.json({ error: t.actions.insightsDisabled }, { status: 503 });
+    return withQuota({ error: t.actions.insightsDisabled }, 503);
   }
 
   if (!process.env.OPENAI_API_KEY) {
-    return Response.json({ error: t.actions.missingApiKey }, { status: 500 });
+    console.error("insights: OPENAI_API_KEY is not set");
+    return withQuota({ error: t.actions.insightsFailed, quotaSpent: false }, 500);
   }
 
-  let period: "week" | "month" = "week";
+  let period: InsightPeriod = "this_week";
   // The panel defaults this to the site language, but sends it explicitly so
   // the reader can generate in a language they aren't browsing in.
   let lang: Locale = locale;
   try {
     const body = await request.json();
-    if (body?.period === "month") period = "month";
+    period = normalizePeriod(body?.period);
     if (isLocale(body?.lang)) lang = body.lang;
   } catch {
-    // Default to the week, in the reader's language.
+    // Default to this week, in the reader's language.
   }
 
+  const granularity = granularityOf(period);
   const now = today();
-  const currentRange = period === "week" ? weekRange(now) : monthRange(now);
+  const currentRange = rangeForPeriod(period, now);
   const previousRange =
-    period === "week"
+    granularity === "week"
       ? weekRange(addDays(currentRange.from, -7))
       : monthRange(addMonths(currentRange.from, -1));
 
@@ -200,34 +254,58 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (current.length === 0) {
-    return Response.json({
-      text: EMPTY_TEXT[period][lang],
+    // No periodStart: this is deliberately not saved to history, on server
+    // or in the client cache — there's nothing worth keeping.
+    return withQuota({
+      text: EMPTY_TEXT[granularity][lang],
       lang,
       generatedAt: new Date().toISOString(),
     });
   }
 
-  const periodLabel =
-    period === "week"
-      ? `week of ${formatDayMonth(currentRange.from, "en")} to ${formatDayMonth(currentRange.to, "en")}`
-      : formatMonthYear(currentRange.from, "en");
-  const previousLabel = period === "week" ? "last week" : "last month";
-
-  // Checked here rather than up with the auth guard so the free paths above —
-  // a signed-in reader with no expenses yet — never burn a day's quota. A pair
-  // of simultaneous requests can both read the same count and slip through;
-  // one extra call on a limit of three is not worth a lock over.
+  // A repeat request for the same period/language, with nothing logged since
+  // the last generation, doesn't need another model call — the saved text is
+  // still accurate. Checked before the quota count below so a cache hit never
+  // spends a day's allowance.
   try {
-    if (await countInsightsToday() >= DAILY_LIMIT) {
-      return Response.json(
-        { error: t.actions.dailyLimitReached(DAILY_LIMIT) },
-        { status: 429 },
-      );
+    const latest = await getLatestInsight({ period, periodStart: currentRange.from, lang });
+    if (latest) {
+      const cachedText = latest.text_en ?? latest.text_ru ?? latest.text_uz;
+      if (cachedText && !(await hasExpensesSince(currentRange, latest.created_at))) {
+        return withQuota({
+          text: cachedText,
+          lang,
+          generatedAt: latest.created_at,
+          period,
+          periodStart: currentRange.from,
+          cached: true,
+        });
+      }
     }
   } catch {
+    // No cache to check — fall through and generate normally.
+  }
+
+  const periodLabel =
+    granularity === "week"
+      ? `week of ${formatDayMonth(currentRange.from, "en")} to ${formatDayMonth(currentRange.to, "en")}`
+      : formatMonthYear(currentRange.from, "en");
+  const previousLabel = granularity === "week" ? "the previous week" : "the previous month";
+
+  // Checked here rather than up with the auth guard so the free paths above —
+  // a signed-in reader with no expenses yet, or a cache hit — never burn a
+  // day's quota. A pair of simultaneous requests can both read the same count
+  // and slip through; one extra call on a limit of three is not worth a lock
+  // over.
+  try {
+    if ((await getInsightsUsedToday()) >= DAILY_LIMIT) {
+      return withQuota({ error: t.actions.dailyLimitReached(DAILY_LIMIT) }, 429);
+    }
+  } catch (error) {
     // An uncountable quota is an unenforceable one, so this fails closed: the
     // usual cause is the `insights` migration never having been applied.
-    return Response.json({ error: t.actions.insightsFailed }, { status: 500 });
+    console.error("insights: could not count today's usage", error);
+    return withQuota({ error: t.actions.insightsFailed, quotaSpent: false }, 500);
   }
 
   const openai = new OpenAI();
@@ -249,58 +327,54 @@ export async function POST(request: NextRequest) {
 
     const raw = completion.choices[0]?.message?.content?.trim();
     if (!raw) {
-      return Response.json({ error: t.actions.modelNoText }, { status: 502 });
+      console.error("insights: model returned no text");
+      return withQuota({ error: t.actions.insightsFailed, quotaSpent: true }, 502);
     }
 
     let parsed: { text?: string };
     try {
       parsed = JSON.parse(raw);
-    } catch {
-      return Response.json({ error: t.actions.modelBadJson }, { status: 502 });
+    } catch (error) {
+      console.error("insights: model returned malformed JSON", error, raw);
+      return withQuota({ error: t.actions.insightsFailed, quotaSpent: true }, 502);
     }
 
     const text = parsed.text?.trim();
     if (!text) {
-      return Response.json({ error: t.actions.modelNoText }, { status: 502 });
+      console.error("insights: model JSON had no text field", raw);
+      return withQuota({ error: t.actions.insightsFailed, quotaSpent: true }, 502);
     }
 
-    // Best-effort: a generated summary is still worth returning even if this
-    // Supabase project hasn't had the `insights` migration applied yet.
-    const generatedAt = await saveInsight({
-      period,
-      periodStart: currentRange.from,
-      lang,
-      text,
-    })
-      .then((saved) => saved.created_at)
-      .catch(() => new Date().toISOString());
+    // Not best-effort: an insight that isn't saved is a generation the daily
+    // quota never counts, since the quota is just a count of saved rows. If
+    // this fails, the model was already paid for but the text goes nowhere —
+    // returning it anyway would let a broken save turn into unlimited free
+    // generations.
+    let saved;
+    try {
+      saved = await saveInsight({
+        period,
+        periodStart: currentRange.from,
+        lang,
+        text,
+      });
+    } catch (error) {
+      console.error("insights: could not save generated insight", error);
+      return withQuota({ error: t.actions.insightsFailed, quotaSpent: true }, 500);
+    }
 
-    return Response.json({
+    return withQuota({
       text,
       lang,
-      generatedAt,
+      generatedAt: saved.created_at,
       period,
       periodStart: currentRange.from,
     });
   } catch (error) {
     if (error instanceof OpenAI.RateLimitError) {
-      return Response.json({ error: t.actions.rateLimited }, { status: 429 });
+      return withQuota({ error: t.actions.rateLimited, quotaSpent: false }, 429);
     }
-    if (error instanceof OpenAI.AuthenticationError) {
-      return Response.json({ error: t.actions.badApiKey }, { status: 500 });
-    }
-    if (error instanceof OpenAI.NotFoundError) {
-      return Response.json(
-        { error: t.actions.modelUnavailable(MODEL) },
-        { status: 502 },
-      );
-    }
-    if (error instanceof OpenAI.APIError) {
-      return Response.json(
-        { error: t.actions.openaiError(error.status, error.message) },
-        { status: 502 },
-      );
-    }
-    return Response.json({ error: t.actions.insightsFailed }, { status: 500 });
+    console.error("insights: OpenAI request failed", error);
+    return withQuota({ error: t.actions.insightsFailed, quotaSpent: false }, 500);
   }
 }

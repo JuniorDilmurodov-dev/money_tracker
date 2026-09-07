@@ -3,7 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import type { ISODate, Range } from "@/lib/dates";
 import { eachDay, startOfDay, today } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
-import type { Category, CategoryTotal, DailyTotal, Expense, Insight } from "@/lib/types";
+import type {
+  Category,
+  CategoryTotal,
+  DailyTotal,
+  Expense,
+  Insight,
+  InsightPeriod,
+} from "@/lib/types";
 
 /** PostgREST can hand back `numeric` as a string — always coerce. */
 function num(value: unknown): number {
@@ -112,7 +119,7 @@ export async function getInsightsHistory(limit = 10): Promise<Insight[]> {
  * timezone. Every generation inserts a row, so the table is its own usage
  * counter — and row level security means this only ever counts the caller's.
  */
-export async function countInsightsToday(): Promise<number> {
+export async function getInsightsUsedToday(): Promise<number> {
   const supabase = await createClient();
   const { count, error } = await supabase
     .from("insights")
@@ -123,8 +130,47 @@ export async function countInsightsToday(): Promise<number> {
   return count ?? 0;
 }
 
+/**
+ * The most recent insight generated for this exact (period, period_start,
+ * lang) combination, if any — used to answer a repeat request from the saved
+ * text instead of paying for another generation.
+ */
+export async function getLatestInsight(input: {
+  period: InsightPeriod;
+  periodStart: ISODate;
+  lang: Locale;
+}): Promise<Insight | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("insights")
+    .select("id, period, period_start, lang, text_en, text_ru, text_uz, created_at")
+    .eq("period", input.period)
+    .eq("period_start", input.periodStart)
+    .eq("lang", input.lang)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not load insight: ${error.message}`);
+  return (data as Insight | null) ?? null;
+}
+
+/** Whether any expense in the range was logged after the given instant. */
+export async function hasExpensesSince(range: Range, since: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("expenses")
+    .select("id", { count: "exact", head: true })
+    .gte("spent_on", range.from)
+    .lte("spent_on", range.to)
+    .gt("created_at", since);
+
+  if (error) throw new Error(`Could not check for new expenses: ${error.message}`);
+  return (count ?? 0) > 0;
+}
+
 export async function saveInsight(input: {
-  period: "week" | "month";
+  period: InsightPeriod;
   periodStart: ISODate;
   lang: Locale;
   text: string;
@@ -151,7 +197,10 @@ export async function saveInsight(input: {
     .select("id, period, period_start, lang, text_en, text_ru, text_uz, created_at")
     .single();
 
-  if (error) throw new Error(`Could not save insight: ${error.message}`);
+  if (error) {
+    console.error("saveInsight: insert failed", error);
+    throw new Error(`Could not save insight: ${error.message}`);
+  }
   return data as Insight;
 }
 

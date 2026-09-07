@@ -118,7 +118,9 @@ export const uz: Dictionary = {
     subtitle: "Xarajatlaringiz haqida qisqa tahlil, so'rov bo'yicha tayyorlanadi.",
     period: "Davr",
     thisWeek: "Shu hafta",
+    lastWeek: "O'tgan hafta",
     thisMonth: "Shu oy",
+    lastMonth: "O'tgan oy",
     generate: "Tahlil tayyorlash",
     generating: "Xarajatlaringiz o'qilmoqda…",
     nothingSent: "Tugmani bosmaguningizcha sun'iy intellektga hech narsa yuborilmaydi.",
@@ -130,6 +132,13 @@ export const uz: Dictionary = {
     monthOf: (date: string) => `${date} dan boshlangan oy`,
     failed: "Tahlil tayyorlab bo'lmadi.",
     unreachable: "Serverga ulanib bo'lmadi.",
+    retry: "Qayta urinish",
+    remaining: (n: number) =>
+      n === 0
+        ? "Bugun uchun tahlil qolmadi. Yarim tunda yangilanadi."
+        : `Bugun yana ${n} ta tahlil qoldi.`,
+    fewDataHint:
+      "Bu davrda hali 3 kundan kam ma'lumot bor — to'liq o'tgan davrni tanlash foydaliroq bo'lishi mumkin.",
   },
 
   settings: {

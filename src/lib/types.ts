@@ -29,6 +29,13 @@ export type DailyTotal = {
 };
 
 /**
+ * The four periods the panel can generate for. Rows written before this
+ * split only ever hold "week" or "month" — the app treats those as
+ * this_week/this_month wherever a period is read back.
+ */
+export type InsightPeriod = "this_week" | "last_week" | "this_month" | "last_month";
+
+/**
  * An insight is generated in one language and stored in the column for it.
  *
  * Rows written before the language picker existed carry English *and* Uzbek
@@ -36,7 +43,7 @@ export type DailyTotal = {
  */
 export type Insight = {
   id: string;
-  period: "week" | "month";
+  period: InsightPeriod | "week" | "month";
   period_start: ISODate;
   lang: Locale | null;
   text_en: string | null;

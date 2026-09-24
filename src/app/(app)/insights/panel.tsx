@@ -308,6 +308,7 @@ export function InsightsPanel({
         <Card title={t.insights.past}>
           <ul className="flex flex-col divide-y divide-line">
             {history.map((item) => {
+              console.log("item", item);
               const entry = insightText(item, locale);
               return (
                 <li key={item.id} className="py-4 first:pt-0 last:pb-0">

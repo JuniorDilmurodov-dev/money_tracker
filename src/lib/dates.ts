@@ -11,8 +11,14 @@ import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 export const APP_TIMEZONE = process.env.NEXT_PUBLIC_APP_TIMEZONE ?? "Asia/Tashkent";
 
-function intlLocale(locale: Locale): string {
-  return INTL_LOCALE[locale];
+const LOCALE_MAP = {
+  uz: "uz-UZ",
+  ru: "ru-RU",
+  en: "en-US",
+} as const;
+
+export function intlLocale(locale: Locale) {
+  return LOCALE_MAP[locale];
 }
 
 export type ISODate = string; // "YYYY-MM-DD"

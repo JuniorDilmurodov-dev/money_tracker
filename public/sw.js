@@ -19,7 +19,7 @@
 
 // Bump on any change to PRECACHE or to the rules below — `activate` deletes
 // every cache that doesn't match, which is what evicts the old build.
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `xarajat-${VERSION}`;
 
 const OFFLINE_URL = "/offline";
@@ -108,10 +108,10 @@ self.addEventListener("fetch", (event) => {
 });
 
 /**
- * Push payloads are kept deliberately generic — a reminder to open the app,
- * never an amount or balance — so nothing sensitive sits in the OS
- * notification tray. This is the Push API, not Cache Storage, so it doesn't
- * touch the "never cache user data" rule above.
+ * The daily reminder is deliberately generic — never an amount or balance.
+ * The Sunday weekly digest is the one exception: it carries a rounded weekly
+ * total on purpose, so it shows on the lock screen. This is the Push API, not
+ * Cache Storage, so it doesn't touch the "never cache user data" rule above.
  */
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
@@ -127,14 +127,32 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  // Resolve against our own origin so a payload can only ever open a page of
+  // this app, and so "/haftalik?w=…" compares equal to a client's full URL.
+  const target = new URL(event.notification.data?.url ?? "/", self.location.origin);
+
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        const url = event.notification.data?.url ?? "/";
-        const existing = clientList.find((client) => client.url.includes(url));
-        if (existing) return existing.focus();
-        return self.clients.openWindow(url);
+      .then(async (clientList) => {
+        const sameOrigin = clientList.filter(
+          (client) => new URL(client.url).origin === target.origin,
+        );
+        const exact = sameOrigin.find((client) => client.url === target.href);
+        if (exact) return exact.focus();
+
+        // An app window is already open on some other page: take it to the
+        // target instead of leaving the tap looking like it did nothing.
+        const open = sameOrigin[0];
+        if (open) {
+          try {
+            const navigated = await open.navigate(target.href);
+            return (navigated ?? open).focus();
+          } catch {
+            // navigate() is refused for windows this worker doesn't control.
+          }
+        }
+        return self.clients.openWindow(target.href);
       }),
   );
 });

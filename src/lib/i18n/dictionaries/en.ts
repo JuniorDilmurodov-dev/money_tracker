@@ -18,6 +18,7 @@ export const en = {
     month: "This month — Xarajat",
     history: "History — Xarajat",
     insights: "Insights — Xarajat",
+    weekly: "Weekly digest — Xarajat",
     settings: "Settings — Xarajat",
     login: "Sign in — Xarajat",
   },
@@ -73,6 +74,23 @@ export const en = {
     byCategory: "By category",
     nothingThisWeek: "Nothing logged this week yet.",
     expenses: "This week's expenses",
+  },
+
+  weekly: {
+    title: "Weekly digest",
+    total: "Total",
+    vsLastWeek: "vs last week",
+    noBaseline: "no data last week",
+    breakdown: "Where it went",
+    other: "Other",
+    empty: "Nothing logged this week.",
+    chartLabel: (currency: string) => `Spending by category, ${currency}`,
+    aiTitle: "AI summary",
+    aiGenerate: "Write summary",
+    aiGenerating: "Reading your week…",
+    aiFailed: "Couldn't write the summary. Try again later.",
+    aiRemaining: (n: number) => `${n} left today`,
+    link: "Weekly digest",
   },
 
   month: {

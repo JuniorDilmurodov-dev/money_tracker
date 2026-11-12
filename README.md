@@ -255,9 +255,20 @@ cached assets.
 
 ## 8. Push notifications
 
-Optional. When set up, Settings gets a card to turn on a single daily
-reminder — sent once at 20:00 in `NEXT_PUBLIC_APP_TIMEZONE`, only to accounts
-that haven't logged an expense yet that day.
+Optional. When set up, Settings gets a card to turn on a daily reminder —
+sent once at 19:00 in `NEXT_PUBLIC_APP_TIMEZONE` (cron `0 14 * * *`, UTC; Hobby
+crons can fire up to an hour late), only to accounts that haven't logged an
+expense yet that day. On **Sundays** the same cron sends the weekly digest
+instead: a rounded total, the change versus last week and the top category,
+built from SQL only (no OpenAI), opening `/haftalik?w=<Monday>`. Unlike the
+daily reminder, the digest does put an amount on the lock screen.
+`digest_sends` (migration `20261112000000`) guarantees one digest per user per
+week.
+
+Test it with the cron secret: `GET /api/push/send-reminders?force=weekly&dry=1`
+with `Authorization: Bearer $CRON_SECRET` returns each user's
+`{title, body, url}` and sends/writes nothing; drop `dry=1` to really send.
+`npx tsx scripts/digest-check.ts` runs the week-boundary and copy checks.
 
 1. Generate a key pair: `npx web-push generate-vapid-keys`.
 2. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and

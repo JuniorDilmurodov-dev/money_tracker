@@ -25,6 +25,13 @@
 
   --good: #199e70;
   --danger: #e66767;
+  --warn: #e0a030;
+
+  /* Donut slices: 1–2 are the series pair above, 3–4 are cooler hues so
+     neighbours stay apart, 5 is a neutral for the "Other" remainder. */
+  --slice-3: #3b82b8;
+  --slice-4: #8b6bd1;
+  --slice-5: #87867f;
 }
 
 :root[data-theme="light"] {
@@ -46,6 +53,11 @@
 
   --good: #1baf7a;
   --danger: #e34948;
+  --warn: #b45309;
+
+  --slice-3: #2b6fa3;
+  --slice-4: #6f4fb8;
+  --slice-5: #78766f;
 }
 
 /* ---------------------------------------------------------------------------
@@ -84,6 +96,7 @@
   --color-series-2: var(--series-2);
   --color-good: var(--good);
   --color-danger: var(--danger);
+  --color-warn: var(--warn);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

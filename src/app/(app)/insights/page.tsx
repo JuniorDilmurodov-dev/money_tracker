@@ -1,4 +1,5 @@
 import { getInsightsHistory, getInsightsUsedToday } from "@/lib/queries";
+import Link from "next/link";
 import { InsightsPanel } from "./panel";
 import { getT } from "@/lib/i18n/server";
 
@@ -27,6 +28,13 @@ export default async function InsightsPage() {
         <h1 className="text-title font-semibold tracking-tight">{t.insights.title}</h1>
         <p className="text-sm text-ink-3">{t.insights.subtitle}</p>
       </div>
+      <Link
+        href="/haftalik"
+        className="flex min-h-11 items-center justify-between rounded-2xl border border-line bg-surface-1 px-4 text-sm font-medium text-ink-2"
+      >
+        {t.weekly.link}
+        <span aria-hidden>→</span>
+      </Link>
       <InsightsPanel initialHistory={history} initialRemaining={remaining} limit={DAILY_LIMIT} />
     </div>
   );

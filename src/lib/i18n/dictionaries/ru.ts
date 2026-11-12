@@ -22,6 +22,7 @@ export const ru: Dictionary = {
     month: "Этот месяц — Xarajat",
     history: "История — Xarajat",
     insights: "Аналитика — Xarajat",
+    weekly: "Недельный отчёт — Xarajat",
     settings: "Настройки — Xarajat",
     login: "Вход — Xarajat",
   },
@@ -77,6 +78,23 @@ export const ru: Dictionary = {
     byCategory: "По категориям",
     nothingThisWeek: "На этой неделе пока ничего не записано.",
     expenses: "Расходы этой недели",
+  },
+
+  weekly: {
+    title: "Недельный отчёт",
+    total: "Всего",
+    vsLastWeek: "к прошлой неделе",
+    noBaseline: "нет данных за прошлую неделю",
+    breakdown: "Куда ушли деньги",
+    other: "Другое",
+    empty: "На этой неделе ничего не записано.",
+    chartLabel: (currency: string) => `Траты по категориям, ${currency}`,
+    aiTitle: "AI-вывод",
+    aiGenerate: "Составить вывод",
+    aiGenerating: "Читаем вашу неделю…",
+    aiFailed: "Не удалось составить вывод. Попробуйте позже.",
+    aiRemaining: (n: number) => `Осталось сегодня: ${n}`,
+    link: "Недельный отчёт",
   },
 
   month: {

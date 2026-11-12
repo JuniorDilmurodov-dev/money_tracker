@@ -12,6 +12,7 @@ export const uz: Dictionary = {
     month: "Shu oy — Xarajat",
     history: "Tarix — Xarajat",
     insights: "Tahlil — Xarajat",
+    weekly: "Haftalik hisobot — Xarajat",
     settings: "Sozlamalar — Xarajat",
     login: "Kirish — Xarajat",
   },
@@ -67,6 +68,23 @@ export const uz: Dictionary = {
     byCategory: "Kategoriyalar bo'yicha",
     nothingThisWeek: "Bu hafta hali hech narsa kiritilmagan.",
     expenses: "Shu haftadagi xarajatlar",
+  },
+
+  weekly: {
+    title: "Haftalik hisobot",
+    total: "Jami",
+    vsLastWeek: "o'tgan haftaga nisbatan",
+    noBaseline: "o'tgan hafta ma'lumot yo'q",
+    breakdown: "Pul qayerga ketdi",
+    other: "Boshqa",
+    empty: "Bu hafta xarajat kiritilmagan.",
+    chartLabel: (currency: string) => `Kategoriyalar bo'yicha xarajat, ${currency}`,
+    aiTitle: "AI xulosa",
+    aiGenerate: "Xulosa yozish",
+    aiGenerating: "Haftangiz o'qilmoqda…",
+    aiFailed: "Xulosa tayyorlanmadi. Keyinroq urinib ko'ring.",
+    aiRemaining: (n: number) => `Bugun ${n} ta qoldi`,
+    link: "Haftalik hisobot",
   },
 
   month: {

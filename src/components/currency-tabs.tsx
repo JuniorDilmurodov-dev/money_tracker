@@ -5,7 +5,16 @@ import type { Dictionary } from "@/lib/i18n";
 import { CURRENCIES, type Currency } from "@/lib/types";
 
 /** Pill tabs that switch a page's charts between currencies via `?cur=`. */
-export function CurrencyTabs({ active, t }: { active: Currency; t: Dictionary }) {
+export function CurrencyTabs({
+  active,
+  t,
+  params = {},
+}: {
+  active: Currency;
+  t: Dictionary;
+  /** Other query params the page needs to keep when the tab changes (e.g. `w`). */
+  params?: Record<string, string>;
+}) {
   return (
     <nav
       aria-label={t.expense.currency}
@@ -14,7 +23,7 @@ export function CurrencyTabs({ active, t }: { active: Currency; t: Dictionary })
       {CURRENCIES.map((c) => (
         <Link
           key={c}
-          href={`?cur=${c}`}
+          href={`?${new URLSearchParams({ ...params, cur: c })}`}
           replace
           scroll={false}
           aria-current={c === active ? "true" : undefined}

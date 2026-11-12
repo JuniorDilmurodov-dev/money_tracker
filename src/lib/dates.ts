@@ -23,14 +23,14 @@ export function intlLocale(locale: Locale) {
 
 export type ISODate = string; // "YYYY-MM-DD"
 
-/** Today in the app timezone. */
-export function today(): ISODate {
+/** Today in the app timezone. `now` is injectable so boundaries can be tested. */
+export function today(now: Date = new Date()): ISODate {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: APP_TIMEZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(now);
 }
 
 /** How far ahead of UTC the app timezone is at a given instant, in ms. */
@@ -104,6 +104,22 @@ export function startOfWeek(iso: ISODate): ISODate {
   const d = toDate(iso);
   const dow = (d.getUTCDay() + 6) % 7; // Mon = 0 … Sun = 6
   return addDays(iso, -dow);
+}
+
+/** Sunday in the Monday-start week. */
+export function isSunday(iso: ISODate): boolean {
+  return toDate(iso).getUTCDay() === 0;
+}
+
+/**
+ * The week a weekly digest covers, given today's app-timezone date. On Sunday
+ * that is the week ending today; on any other day (a forced/manual run) it is
+ * the last *completed* week, so a Monday 00:30 run never reports the empty
+ * week that just began.
+ */
+export function digestWeekStart(todayIso: ISODate): ISODate {
+  const monday = startOfWeek(todayIso);
+  return isSunday(todayIso) ? monday : addDays(monday, -7);
 }
 
 export function startOfMonth(iso: ISODate): ISODate {

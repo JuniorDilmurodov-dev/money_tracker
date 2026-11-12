@@ -275,7 +275,8 @@ with `Authorization: Bearer $CRON_SECRET` returns each user's
    `VAPID_SUBJECT` (a `mailto:` address) from `.env.local.example`.
 3. Set `SUPABASE_SERVICE_ROLE_KEY` from **Project Settings → API Keys**. It is
    created by `src/lib/supabase/admin.ts` and imported only by the cron route
-   (`src/app/api/push/send-reminders/route.ts`) and the admin dashboard (§9).
+   (`src/app/api/push/send-reminders/route.ts`), the admin dashboard (§9) and
+   the Telegram routes (§10).
 4. Set `CRON_SECRET` to any random string. `vercel.json` schedules Vercel Cron
    to call the reminder route daily; Vercel signs that call with the secret
    as an `Authorization: Bearer` header automatically.
@@ -310,6 +311,36 @@ Vitals) is handled separately by Vercel Analytics and Speed Insights, wired
 into the root layout — no env vars, live in the Vercel project's Analytics tab.
 
 ---
+
+## 10. Telegram Mini App
+
+The app opens inside Telegram as a Mini App and the bot logs quick expenses
+(`50000 ovqat`). It runs entirely as Next route handlers — no separate bot
+process.
+
+- `src/lib/telegram.ts` verifies the signed `initData` (HMAC with the bot
+  token, 24 h max age) and finds or creates the Supabase user for a Telegram id.
+- `POST /api/telegram/auth`: `TelegramLogin` (on `/login`) posts `initData`;
+  the server mints a magic link, verifies it itself and sets the session
+  cookies. In a normal browser `initData` is empty, so nothing happens and
+  Google/email sign-in is untouched.
+- `POST /api/telegram/webhook`: bot messages, guarded by
+  `x-telegram-bot-api-secret-token`.
+- **Account linking.** A Telegram id with no link gets a fresh empty account.
+  To open an existing one, Settings → Telegram creates a 10-minute one-time
+  code (`telegram_link_codes`) and opens `t.me/<bot>?start=link_<code>`; the
+  webhook links the sender's id to that user. Any expenses on the empty
+  account are moved over and it is deleted.
+
+Setup:
+
+1. Apply `supabase/migrations/20261113000000_telegram_users.sql` (both tables
+   have RLS on and no policies: service role only).
+2. Set `TELEGRAM_BOT_TOKEN` (from @BotFather), `TELEGRAM_WEBHOOK_SECRET` (any
+   random string) and `TELEGRAM_BOT_USERNAME` (without `@`). `NEXT_PUBLIC_APP_URL`
+   is optional: the webhook falls back to its own origin.
+3. After deploying, register the webhook, menu button and commands:
+   `node --env-file=.env.local scripts/telegram-setup.mjs https://<domain>`.
 
 ## How it's put together
 

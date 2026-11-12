@@ -205,6 +205,7 @@ export const en = {
     save: "Save",
     cancel: "Cancel",
     delete: "Delete",
+    currency: "Currency",
   },
 
   chart: {

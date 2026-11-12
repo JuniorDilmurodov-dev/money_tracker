@@ -1,8 +1,8 @@
 import { Card, EmptyState } from "@/components/ui";
 import { ExpenseList } from "@/components/expense-list";
 import { HistoryFilters } from "./filters";
-import { formatSom } from "@/lib/money";
-import { getCategories, searchExpenses, sumExpenses } from "@/lib/queries";
+import { formatTotals } from "@/lib/currency";
+import { getCategories, searchExpenses, sumByCurrency } from "@/lib/queries";
 import type { ISODate } from "@/lib/dates";
 import { getT } from "@/lib/i18n/server";
 
@@ -37,7 +37,7 @@ export default async function HistoryPage(props: PageProps<"/history">) {
     searchExpenses({ ...filters, limit: 300 }),
   ]);
 
-  const total = sumExpenses(expenses);
+  const totals = sumByCurrency(expenses);
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,7 +56,7 @@ export default async function HistoryPage(props: PageProps<"/history">) {
 
       <Card
         title={t.history.expenseCount(expenses.length)}
-        action={<span className="tnum text-sm font-semibold">{formatSom(total, t)}</span>}
+        action={<span className="tnum text-sm font-semibold">{formatTotals(totals, t)}</span>}
       >
         {expenses.length === 0 ? (
           <EmptyState>{t.history.noMatches}</EmptyState>

@@ -200,6 +200,7 @@ export const uz: Dictionary = {
     save: "Saqlash",
     cancel: "Bekor qilish",
     delete: "O'chirish",
+    currency: "Valyuta",
   },
 
   chart: {

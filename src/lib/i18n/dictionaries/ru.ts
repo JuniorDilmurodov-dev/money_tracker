@@ -210,6 +210,7 @@ export const ru: Dictionary = {
     save: "Сохранить",
     cancel: "Отмена",
     delete: "Удалить",
+    currency: "Валюта",
   },
 
   chart: {

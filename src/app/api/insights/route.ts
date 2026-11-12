@@ -7,6 +7,7 @@ import {
   getInsightsUsedToday,
   getLatestInsight,
   hasExpensesSince,
+  inCurrency,
   saveInsight,
   sumExpenses,
   totalsByCategory,
@@ -22,9 +23,10 @@ import {
   type Range,
 } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
+import { formatAmountFor } from "@/lib/currency";
 import { getT } from "@/lib/i18n/server";
 import { isLocale, type Locale } from "@/lib/i18n/config";
-import type { Expense, InsightPeriod } from "@/lib/types";
+import { CURRENCIES, type Currency, type Expense, type InsightPeriod } from "@/lib/types";
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
@@ -61,6 +63,7 @@ Rules:
 - 3 to 5 sentences. No more.
 - Plain text only. No markdown, no bullet points, no headings, no asterisks, no emoji.
 - Amounts are Uzbek so'm. Write them with spaces as thousand separators, e.g. 150 000.
+- Amounts are in so'm and/or USD, always tracked separately. Never convert between them, add them together or compare them; call dollars "USD".
 - Lead with what actually changed versus the previous period, and name the categories.
 - Point out recurring small purchases only when the data shows the same kind of purchase repeating and the total is worth mentioning.
 - End with one or two concrete places to cut back, tied to a specific category and a rough amount.
@@ -125,10 +128,13 @@ function recurringPurchases(expenses: Expense[]) {
   const groups = new Map<string, { label: string; count: number; total: number }>();
 
   for (const e of expenses) {
-    const key = `${e.category}|${(e.note ?? "").toLowerCase().trim()}|${Math.round(e.amount)}`;
+    // USD keeps its cents in the key so $1.20 and $1.40 are not the same purchase.
+    const amountKey = e.currency === "USD" ? e.amount.toFixed(2) : Math.round(e.amount);
+    const key = `${e.currency}|${e.category}|${(e.note ?? "").toLowerCase().trim()}|${amountKey}`;
+    const price = e.currency === "USD" ? `${formatAmountFor(e.amount, "USD")} USD` : `${formatAmount(e.amount)} so'm`;
     const label = e.note?.trim()
-      ? `${e.category} — "${e.note.trim()}" at ${formatAmount(e.amount)} so'm`
-      : `${e.category} at ${formatAmount(e.amount)} so'm`;
+      ? `${e.category} — "${e.note.trim()}" at ${price}`
+      : `${e.category} at ${price}`;
     const existing = groups.get(key);
     if (existing) {
       existing.count += 1;
@@ -192,6 +198,88 @@ function buildPrompt(
     );
   }
 
+  lines.push("", 'Write the summary as JSON: {"text": "..."}.');
+  return lines.join("\n");
+}
+
+/** "1 200 USD" / "150 000 so'm" — the unit travels with every number in the prompt. */
+function promptMoney(value: number, currency: Currency): string {
+  return currency === "USD" ? `${formatAmountFor(value, "USD")} USD` : `${formatAmount(value)} so'm`;
+}
+
+/** One currency's block: totals and the category breakdown against the previous period. */
+function currencySection(
+  currency: Currency,
+  previousLabel: string,
+  current: Expense[],
+  previous: Expense[],
+): string[] {
+  const money = (value: number) => promptMoney(value, currency);
+  const currentByCategory = totalsByCategory(current);
+  const previousByCategory = new Map(
+    totalsByCategory(previous).map((t) => [t.category, t.total]),
+  );
+  const lines = [
+    `Total this period: ${money(sumExpenses(current))} across ${current.length} expenses`,
+    `Total ${previousLabel}: ${money(sumExpenses(previous))} across ${previous.length} expenses`,
+    "",
+    "By category (this period vs previous):",
+    ...currentByCategory.map(
+      (t) =>
+        `- ${t.category}: ${money(t.total)} (${Math.round(t.share)}% of spending), previously ${money(previousByCategory.get(t.category) ?? 0)}`,
+    ),
+  ];
+
+  const dropped = [...previousByCategory.entries()].filter(
+    ([category]) => !currentByCategory.some((t) => t.category === category),
+  );
+  if (dropped.length > 0) {
+    lines.push(
+      "",
+      "Categories with spending last period but none this period:",
+      ...dropped.map(([c, total]) => `- ${c}: ${money(total)} previously`),
+    );
+  }
+
+  const recurring = recurringPurchases(current);
+  if (recurring.length > 0) {
+    lines.push(
+      "",
+      "Repeated purchases this period (3 or more times):",
+      ...recurring.map((g) => `- ${g.label}, ${g.count} times, ${money(g.total)} total`),
+    );
+  }
+  return lines;
+}
+
+/**
+ * Entry point for the prompt. Someone who only ever logged so'm gets exactly
+ * the original prompt; once a second currency appears each one gets its own
+ * section and the model is told they are separate ledgers.
+ */
+function buildCurrencyPrompt(
+  periodLabel: string,
+  previousLabel: string,
+  current: Expense[],
+  previous: Expense[],
+) {
+  const withData = CURRENCIES.filter(
+    (c) => inCurrency(current, c).length > 0 || inCurrency(previous, c).length > 0,
+  );
+  if (withData.length <= 1 && withData[0] !== "USD") {
+    return buildPrompt(periodLabel, previousLabel, current, previous);
+  }
+
+  const lines = [`Period: ${periodLabel}`];
+  for (const c of withData) {
+    lines.push(
+      "",
+      c === "USD"
+        ? "== Spending in USD (separate from so'm, never add them) =="
+        : "== Spending in so'm (separate from USD, never add them) ==",
+      ...currencySection(c, previousLabel, inCurrency(current, c), inCurrency(previous, c)),
+    );
+  }
   lines.push("", 'Write the summary as JSON: {"text": "..."}.');
   return lines.join("\n");
 }
@@ -320,7 +408,7 @@ export async function POST(request: NextRequest) {
         { role: "system", content: systemPrompt(lang) },
         {
           role: "user",
-          content: buildPrompt(periodLabel, previousLabel, current, previous),
+          content: buildCurrencyPrompt(periodLabel, previousLabel, current, previous),
         },
       ],
     });

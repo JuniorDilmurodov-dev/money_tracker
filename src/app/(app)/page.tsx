@@ -4,8 +4,8 @@ import { Card, EmptyState } from "@/components/ui";
 import { ExpenseList } from "@/components/expense-list";
 import { QuickAdd } from "@/components/quick-add";
 import { today, weekRange } from "@/lib/dates";
-import { formatSom } from "@/lib/money";
-import { getCategories, getExpensesInRange, sumExpenses } from "@/lib/queries";
+import { formatTotals } from "@/lib/currency";
+import { getCategories, getExpensesInRange, sumByCurrency } from "@/lib/queries";
 import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata() {
@@ -23,8 +23,8 @@ export default async function AddPage() {
   ]);
 
   const todays = weekExpenses.filter((e) => e.spent_on === now);
-  const todayTotal = sumExpenses(todays);
-  const weekTotal = sumExpenses(weekExpenses);
+  const todayTotals = sumByCurrency(todays);
+  const weekTotals = sumByCurrency(weekExpenses);
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,14 +35,14 @@ export default async function AddPage() {
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-line bg-surface-1 px-4 py-3">
           <div className="text-xs text-ink-3">{t.home.today}</div>
-          <div className="tnum mt-1 text-tile font-semibold">{formatSom(todayTotal, t)}</div>
+          <div className="tnum mt-1 text-tile font-semibold">{formatTotals(todayTotals, t)}</div>
         </div>
         <Link
           href="/week"
           className="rounded-2xl border border-line bg-surface-1 px-4 py-3 transition-colors hover:border-line-strong"
         >
           <div className="text-xs text-ink-3">{t.home.thisWeek}</div>
-          <div className="tnum mt-1 text-tile font-semibold">{formatSom(weekTotal, t)}</div>
+          <div className="tnum mt-1 text-tile font-semibold">{formatTotals(weekTotals, t)}</div>
         </Link>
       </div>
 

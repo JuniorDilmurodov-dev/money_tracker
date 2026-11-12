@@ -1,23 +1,29 @@
 import { Card, EmptyState, StatTile } from "@/components/ui";
 import { CategoryBars } from "@/components/category-bars";
+import { CurrencyTabs } from "@/components/currency-tabs";
 import { DailyLine, type DailyPoint } from "@/components/daily-line";
 import { ExpenseList } from "@/components/expense-list";
 import { addDays, formatDayMonth, today, weekRange, weekdayShort } from "@/lib/dates";
 import { percentChange } from "@/lib/money";
+import { percentChangeByCurrency, pickCurrency } from "@/lib/currency";
 import {
   getCategories,
   getExpensesInRange,
+  inCurrency,
+  sumByCurrency,
   sumExpenses,
   totalsByCategory,
   totalsByDay,
 } from "@/lib/queries";
 import { getT } from "@/lib/i18n/server";
+import { CURRENCIES } from "@/lib/types";
 
 export async function generateMetadata() {
   return { title: (await getT()).t.meta.week };
 }
 
-export default async function WeekPage() {
+export default async function WeekPage(props: PageProps<"/week">) {
+  const { cur } = await props.searchParams;
   const { locale, t } = await getT();
   const now = today();
   const thisWeek = weekRange(now);
@@ -29,12 +35,21 @@ export default async function WeekPage() {
     getExpensesInRange(lastWeek),
   ]);
 
-  const currentTotal = sumExpenses(current);
-  const previousTotal = sumExpenses(previous);
+  // Totals are per currency and never added together: the chart, the
+  // category breakdown and the daily line all show one currency at a time.
+  const currentTotals = sumByCurrency(current);
+  const previousTotals = sumByCurrency(previous);
+  const currency = pickCurrency(cur, currentTotals, previousTotals);
+  const showTabs = CURRENCIES.every((c) => currentTotals[c] + previousTotals[c] > 0);
+  const currentCur = inCurrency(current, currency);
+  const previousCur = inCurrency(previous, currency);
+
+  const currentTotal = sumExpenses(currentCur);
+  const previousTotal = sumExpenses(previousCur);
   const change = percentChange(currentTotal, previousTotal);
 
-  const currentDays = totalsByDay(current, thisWeek);
-  const previousDays = totalsByDay(previous, lastWeek);
+  const currentDays = totalsByDay(currentCur, thisWeek);
+  const previousDays = totalsByDay(previousCur, lastWeek);
 
   const points: DailyPoint[] = currentDays.map((day, i) => ({
     label: weekdayShort(day.date, locale),
@@ -42,7 +57,7 @@ export default async function WeekPage() {
     previous: previousDays[i]?.total ?? null,
   }));
 
-  const byCategory = totalsByCategory(current);
+  const byCategory = totalsByCategory(currentCur);
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,16 +75,29 @@ export default async function WeekPage() {
           currency={t.currency}
           delta={change}
           deltaLabel={t.week.vsLastWeek}
+          totals={currentTotals}
+          t={t}
+          deltas={percentChangeByCurrency(currentTotals, previousTotals)}
         />
-        <StatTile label={t.week.lastWeek} value={previousTotal} currency={t.currency} />
+        <StatTile
+          label={t.week.lastWeek}
+          value={previousTotal}
+          currency={t.currency}
+          totals={previousTotals}
+          t={t}
+        />
       </div>
 
-      <Card title={t.week.dailySpending}>
+      <Card
+        title={t.week.dailySpending}
+        action={showTabs ? <CurrencyTabs active={currency} t={t} /> : undefined}
+      >
         {currentTotal === 0 && previousTotal === 0 ? (
           <EmptyState>{t.week.nothingTwoWeeks}</EmptyState>
         ) : (
           <DailyLine
             data={points}
+            currency={currency}
             currentLabel={t.week.thisWeek}
             previousLabel={t.week.lastWeek}
           />
@@ -80,7 +108,7 @@ export default async function WeekPage() {
         {byCategory.length === 0 ? (
           <EmptyState>{t.week.nothingThisWeek}</EmptyState>
         ) : (
-          <CategoryBars totals={byCategory} t={t} />
+          <CategoryBars totals={byCategory} t={t} currency={currency} />
         )}
       </Card>
 

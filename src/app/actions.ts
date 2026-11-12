@@ -10,7 +10,8 @@ import { today } from "@/lib/dates";
 import { getT } from "@/lib/i18n/server";
 import { isLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
-import type { ActionResult } from "@/lib/types";
+import { CURRENCIES, type ActionResult, type Currency } from "@/lib/types";
+import { parseAmountFor } from "@/lib/currency";
 
 /**
  * Server Actions are reachable by direct POST, not just through the UI, so each
@@ -164,6 +165,12 @@ export async function signOut() {
 // Expenses
 // ---------------------------------------------------------------------------
 
+/** Anything but a known currency falls back to UZS. */
+function readCurrency(formData: FormData): Currency {
+  const raw = String(formData.get("currency") ?? "");
+  return (CURRENCIES as readonly string[]).includes(raw) ? (raw as Currency) : "UZS";
+}
+
 export async function addExpense(
   _prev: ActionResult | null,
   formData: FormData,
@@ -171,7 +178,8 @@ export async function addExpense(
   const { supabase, user } = await requireUser();
   const { t } = await getT();
 
-  const amount = parseAmount(String(formData.get("amount") ?? ""));
+  const currency = readCurrency(formData);
+  const amount = parseAmountFor(String(formData.get("amount") ?? ""), currency);
   if (amount === null) return { ok: false, error: t.actions.amountRequired };
 
   const category = String(formData.get("category") ?? "").trim();
@@ -184,7 +192,7 @@ export async function addExpense(
 
   const { error } = await supabase
     .from("expenses")
-    .insert({ user_id: user.id, amount, category, spent_on: spentOn, note });
+    .insert({ user_id: user.id, amount, currency, category, spent_on: spentOn, note });
 
   if (error) return { ok: false, error: error.message };
 
@@ -202,7 +210,8 @@ export async function updateExpense(
   const id = String(formData.get("id") ?? "");
   if (!id) return { ok: false, error: t.actions.missingExpense };
 
-  const amount = parseAmount(String(formData.get("amount") ?? ""));
+  const currency = readCurrency(formData);
+  const amount = parseAmountFor(String(formData.get("amount") ?? ""), currency);
   if (amount === null) return { ok: false, error: t.actions.amountRequired };
 
   const category = String(formData.get("category") ?? "").trim();
@@ -216,7 +225,7 @@ export async function updateExpense(
   // RLS restricts this to the caller's own rows.
   const { error } = await supabase
     .from("expenses")
-    .update({ amount, category, spent_on: spentOn, note })
+    .update({ amount, currency, category, spent_on: spentOn, note })
     .eq("id", id);
 
   if (error) return { ok: false, error: error.message };

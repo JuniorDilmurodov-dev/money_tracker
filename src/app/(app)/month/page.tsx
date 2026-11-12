@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Card, EmptyState, StatTile } from "@/components/ui";
 import { CategoryBars } from "@/components/category-bars";
+import { CurrencyTabs } from "@/components/currency-tabs";
 import { DailyLine, type DailyPoint } from "@/components/daily-line";
 import {
   addMonths,
@@ -11,9 +12,12 @@ import {
   today,
 } from "@/lib/dates";
 import { formatSom, percentChange } from "@/lib/money";
+import { formatTotals, percentChangeByCurrency, pickCurrency } from "@/lib/currency";
 import {
   getMonthlyBudget,
   getExpensesInRange,
+  inCurrency,
+  sumByCurrency,
   sumExpenses,
   totalsByCategory,
   totalsByDay,
@@ -21,6 +25,7 @@ import {
 import { getT } from "@/lib/i18n/server";
 import { translateCategory } from "@/lib/i18n/categories";
 import type { Dictionary } from "@/lib/i18n";
+import { CURRENCIES, type Totals } from "@/lib/types";
 
 export async function generateMetadata() {
   return { title: (await getT()).t.meta.month };
@@ -84,7 +89,8 @@ function BudgetProgress({
   );
 }
 
-export default async function MonthPage() {
+export default async function MonthPage(props: PageProps<"/month">) {
+  const { cur } = await props.searchParams;
   const { locale, t } = await getT();
   const now = today();
   const thisMonth = monthRange(now);
@@ -96,12 +102,21 @@ export default async function MonthPage() {
     getExpensesInRange(lastMonth),
   ]);
 
-  const currentTotal = sumExpenses(current);
-  const previousTotal = sumExpenses(previous);
+  // Totals are per currency and never added together: the chart, the
+  // category breakdown and the daily line all show one currency at a time.
+  const currentTotals = sumByCurrency(current);
+  const previousTotals = sumByCurrency(previous);
+  const currency = pickCurrency(cur, currentTotals, previousTotals);
+  const showTabs = CURRENCIES.every((c) => currentTotals[c] + previousTotals[c] > 0);
+  const currentCur = inCurrency(current, currency);
+  const previousCur = inCurrency(previous, currency);
+
+  const currentTotal = sumExpenses(currentCur);
+  const previousTotal = sumExpenses(previousCur);
   const change = percentChange(currentTotal, previousTotal);
 
-  const currentDays = totalsByDay(current, thisMonth);
-  const previousDays = totalsByDay(previous, lastMonth);
+  const currentDays = totalsByDay(currentCur, thisMonth);
+  const previousDays = totalsByDay(previousCur, lastMonth);
 
   const points: DailyPoint[] = currentDays.map((day, i) => ({
     label: String(Number(day.date.slice(8, 10))),
@@ -109,11 +124,15 @@ export default async function MonthPage() {
     previous: previousDays[i]?.total ?? null,
   }));
 
-  const byCategory = totalsByCategory(current);
+  const byCategory = totalsByCategory(currentCur);
   const top = byCategory[0];
 
   const daysElapsed = daysBetween(thisMonth.from, now) + 1;
-  const dailyAverage = currentTotal / Math.max(daysElapsed, 1);
+  // Averaged per currency: so'm to whole so'm, USD to cents.
+  const dailyAverages: Totals = {
+    UZS: Math.round(currentTotals.UZS / Math.max(daysElapsed, 1)),
+    USD: Math.round((currentTotals.USD / Math.max(daysElapsed, 1)) * 100) / 100,
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,7 +142,7 @@ export default async function MonthPage() {
         </h1>
         <p className="text-sm text-ink-3">
           {t.month.dayCount(daysElapsed)} ·{" "}
-          {t.month.dailyAverage(formatSom(Math.round(dailyAverage), t))}
+          {t.month.dailyAverage(formatTotals(dailyAverages, t))}
         </p>
       </div>
 
@@ -134,11 +153,16 @@ export default async function MonthPage() {
           currency={t.currency}
           delta={change}
           deltaLabel={t.month.vsLastMonth}
+          totals={currentTotals}
+          t={t}
+          deltas={percentChangeByCurrency(currentTotals, previousTotals)}
         />
         <StatTile
           label={formatMonthYear(lastMonth.from, locale)}
           value={previousTotal}
           currency={t.currency}
+          totals={previousTotals}
+          t={t}
         />
       </div>
 
@@ -151,7 +175,7 @@ export default async function MonthPage() {
         }
       >
         {budget ? (
-          <BudgetProgress spent={currentTotal} budget={budget} t={t} />
+          <BudgetProgress spent={currentTotals.UZS} budget={budget} t={t} />
         ) : (
           <EmptyState>
             {t.month.noBudget}{" "}
@@ -163,12 +187,16 @@ export default async function MonthPage() {
         )}
       </Card>
 
-      <Card title={t.month.dailySpending}>
+      <Card
+        title={t.month.dailySpending}
+        action={showTabs ? <CurrencyTabs active={currency} t={t} /> : undefined}
+      >
         {currentTotal === 0 && previousTotal === 0 ? (
           <EmptyState>{t.month.nothingTwoMonths}</EmptyState>
         ) : (
           <DailyLine
             data={points}
+            currency={currency}
             currentLabel={t.month.thisMonth}
             previousLabel={t.month.lastMonth}
           />
@@ -196,7 +224,7 @@ export default async function MonthPage() {
                   </p>
                 );
               })()}
-            <CategoryBars totals={byCategory} t={t} />
+            <CategoryBars totals={byCategory} t={t} currency={currency} />
           </>
         )}
       </Card>

@@ -10,7 +10,8 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatCompact, formatSom } from "@/lib/money";
+import { formatCompactFor, formatMoney } from "@/lib/currency";
+import type { Currency } from "@/lib/types";
 import { useT } from "@/lib/i18n/client";
 
 export type DailyPoint = {
@@ -25,12 +26,14 @@ function ChartTooltip({
   label,
   currentLabel,
   previousLabel,
+  currency = "UZS",
 }: {
   active?: boolean;
   payload?: { dataKey?: string | number; value?: number | string }[];
   label?: string | number;
   currentLabel: string;
   previousLabel: string;
+  currency?: Currency;
 }) {
   const t = useT();
 
@@ -56,7 +59,7 @@ function ChartTooltip({
           />
           <span className="text-ink-3">{currentLabel}</span>
           <span className="tnum ml-auto font-medium text-ink">
-            {formatSom(current ?? 0, t)}
+            {formatMoney(current ?? 0, currency, t)}
           </span>
         </div>
         {previous !== null && (
@@ -68,7 +71,7 @@ function ChartTooltip({
             />
             <span className="text-ink-3">{previousLabel}</span>
             <span className="tnum ml-auto font-medium text-ink">
-              {formatSom(previous, t)}
+              {formatMoney(previous, currency, t)}
             </span>
           </div>
         )}
@@ -89,11 +92,13 @@ export function DailyLine({
   currentLabel,
   previousLabel,
   showPrevious = true,
+  currency = "UZS",
 }: {
   data: DailyPoint[];
   currentLabel: string;
   previousLabel: string;
   showPrevious?: boolean;
+  currency?: Currency;
 }) {
   return (
     <div>
@@ -139,7 +144,7 @@ export function DailyLine({
               tickLine={false}
               axisLine={false}
               width={40}
-              tickFormatter={(value: number) => formatCompact(value)}
+              tickFormatter={(value: number) => formatCompactFor(value, currency)}
             />
             <Tooltip
               cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
@@ -147,6 +152,7 @@ export function DailyLine({
                 <ChartTooltip
                   currentLabel={currentLabel}
                   previousLabel={previousLabel}
+                  currency={currency}
                 />
               }
             />

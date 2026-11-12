@@ -7,10 +7,17 @@ import { deleteExpense, updateExpense } from "@/app/actions";
 import { DateField } from "@/components/date-field";
 import { ErrorText } from "@/components/ui";
 import { formatRelativeDay, today } from "@/lib/dates";
-import { formatAmountInput, formatSom, handleAmountInputChange } from "@/lib/money";
+import {
+  currencyLabel,
+  formatAmountInputFor,
+  formatMoney,
+  handleAmountInputChangeFor,
+  switchAmountInput,
+} from "@/lib/currency";
+import { CurrencyToggle } from "@/components/currency-toggle";
 import { useI18n, useT } from "@/lib/i18n/client";
 import { translateCategory } from "@/lib/i18n/categories";
-import type { Category, Expense } from "@/lib/types";
+import type { Category, Currency, Expense } from "@/lib/types";
 
 function DeleteButton() {
   const { pending } = useFormStatus();
@@ -51,7 +58,19 @@ function EditForm({
 }) {
   const t = useT();
   const [error, setError] = useState<string | null>(null);
-  const [amount, setAmount] = useState(() => formatAmountInput(String(Math.round(expense.amount))));
+  const [currency, setCurrency] = useState<Currency>(expense.currency);
+  const [amount, setAmount] = useState(() =>
+    formatAmountInputFor(
+      String(expense.currency === "USD" ? expense.amount : Math.round(expense.amount)),
+      expense.currency,
+    ),
+  );
+
+  function changeCurrency(next: Currency) {
+    if (next === currency) return;
+    setCurrency(next);
+    setAmount((a) => switchAmountInput(a, next));
+  }
   const [spentOn, setSpentOn] = useState(expense.spent_on);
 
   // Closing on success happens in the action, not in an effect watching it.
@@ -69,6 +88,8 @@ function EditForm({
   return (
     <form action={handleSubmit} className="flex flex-col gap-3 border-t border-line px-4 py-4">
       <input type="hidden" name="id" value={expense.id} />
+      <input type="hidden" name="currency" value={currency} />
+      <CurrencyToggle value={currency} onChange={changeCurrency} t={t} />
 
       <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <label className="flex flex-col gap-1.5">
@@ -77,10 +98,11 @@ function EditForm({
             name="amount"
             inputMode="decimal"
             value={amount}
-            onChange={(e) => handleAmountInputChange(e, setAmount)}
+            onChange={(e) => handleAmountInputChangeFor(e, setAmount, currency)}
             required
             className="tnum h-11 rounded-lg border border-line bg-surface-2 px-3 text-base outline-none focus:border-line-strong"
           />
+          <span className="text-xs text-ink-3">{currencyLabel(currency, t)}</span>
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-ink-3">{t.expense.date}</span>
@@ -165,7 +187,7 @@ function ExpenseRow({
             </div>
           </div>
           <div className="tnum shrink-0 text-sm font-semibold">
-            {formatSom(expense.amount, t)}
+            {formatMoney(expense.amount, expense.currency, t)}
           </div>
         </button>
       </div>

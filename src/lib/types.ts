@@ -1,6 +1,11 @@
 import type { ISODate } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
 
+export const CURRENCIES = ["UZS", "USD"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+/** Per-currency totals. Never add the two together. */
+export type Totals = Record<Currency, number>;
+
 export type Expense = {
   id: string;
   amount: number;
@@ -8,6 +13,7 @@ export type Expense = {
   spent_on: ISODate;
   note: string | null;
   created_at: string;
+  currency: Currency;
 };
 
 export type Category = {

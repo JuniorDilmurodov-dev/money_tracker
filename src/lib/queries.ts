@@ -6,10 +6,12 @@ import type { Locale } from "@/lib/i18n/config";
 import type {
   Category,
   CategoryTotal,
+  Currency,
   DailyTotal,
   Expense,
   Insight,
   InsightPeriod,
+  Totals,
 } from "@/lib/types";
 
 /** PostgREST can hand back `numeric` as a string — always coerce. */
@@ -25,7 +27,21 @@ function toExpense(row: Record<string, unknown>): Expense {
     spent_on: row.spent_on as ISODate,
     note: (row.note as string | null) ?? null,
     created_at: row.created_at as string,
+    currency: row.currency === "USD" ? "USD" : "UZS",
   };
+}
+
+/** Per-currency totals. USD is rounded to cents to shed float drift. */
+export function sumByCurrency(expenses: Expense[]): Totals {
+  const totals: Totals = { UZS: 0, USD: 0 };
+  for (const e of expenses) totals[e.currency] += e.amount;
+  totals.USD = Math.round(totals.USD * 100) / 100;
+  return totals;
+}
+
+/** Only the expenses in one currency — feed this to the single-currency helpers below. */
+export function inCurrency(expenses: Expense[], currency: Currency): Expense[] {
+  return expenses.filter((e) => e.currency === currency);
 }
 
 /**
@@ -67,7 +83,7 @@ export async function getExpensesInRange(range: Range): Promise<Expense[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("expenses")
-    .select("id, amount, category, spent_on, note, created_at")
+    .select("id, amount, category, spent_on, note, created_at, currency")
     .gte("spent_on", range.from)
     .lte("spent_on", range.to)
     .order("spent_on", { ascending: false })
@@ -88,7 +104,7 @@ export async function searchExpenses(filters: ExpenseFilters): Promise<Expense[]
   const supabase = await createClient();
   let query = supabase
     .from("expenses")
-    .select("id, amount, category, spent_on, note, created_at")
+    .select("id, amount, category, spent_on, note, created_at, currency")
     .order("spent_on", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(filters.limit ?? 200);

@@ -1,7 +1,7 @@
-import { formatSom } from "@/lib/money";
+import { formatMoney } from "@/lib/currency";
 import { translateCategory } from "@/lib/i18n/categories";
 import type { Dictionary } from "@/lib/i18n";
-import type { CategoryTotal } from "@/lib/types";
+import type { CategoryTotal, Currency } from "@/lib/types";
 
 /**
  * Ranked horizontal bars, one hue.
@@ -10,14 +10,22 @@ import type { CategoryTotal } from "@/lib/types";
  * easier than by hue around a donut, every bar is directly labelled with its
  * name, amount and share, and identity never depends on color.
  */
-export function CategoryBars({ totals, t }: { totals: CategoryTotal[]; t: Dictionary }) {
+export function CategoryBars({
+  totals,
+  t,
+  currency = "UZS",
+}: {
+  totals: CategoryTotal[];
+  t: Dictionary;
+  currency?: Currency;
+}) {
   const max = Math.max(...totals.map((entry) => entry.total), 1);
 
   return (
     <ul className="flex flex-col gap-3">
       {totals.map((entry) => {
         const name = translateCategory(entry.category, t);
-        const amount = formatSom(entry.total, t);
+        const amount = formatMoney(entry.total, currency, t);
         const share = Math.round(entry.share);
 
         return (

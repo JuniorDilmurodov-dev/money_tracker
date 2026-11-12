@@ -7,10 +7,15 @@ import { addExpense } from "@/app/actions";
 import { DateField } from "@/components/date-field";
 import { ErrorText } from "@/components/ui";
 import { today as todayISO, addDays } from "@/lib/dates";
-import { handleAmountInputChange } from "@/lib/money";
+import {
+  currencyLabel,
+  handleAmountInputChangeFor,
+  switchAmountInput,
+} from "@/lib/currency";
+import { CurrencyToggle } from "@/components/currency-toggle";
 import { useT } from "@/lib/i18n/client";
 import { translateCategory } from "@/lib/i18n/categories";
-import type { ActionResult, Category } from "@/lib/types";
+import type { ActionResult, Category, Currency } from "@/lib/types";
 
 const LAST_CATEGORY_KEY = "last-category";
 
@@ -84,6 +89,13 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
   const [result, setResult] = useState<ActionResult | null>(null);
   const [saved, setSaved] = useState(false);
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<Currency>("UZS");
+
+  function changeCurrency(next: Currency) {
+    if (next === currency) return;
+    setCurrency(next);
+    setAmount((a) => switchAmountInput(a, next));
+  }
 
   /**
    * Wraps the Server Action so the post-save reset happens in the action, not
@@ -125,12 +137,15 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
             placeholder="0"
             required
             value={amount}
-            onChange={(e) => handleAmountInputChange(e, setAmount)}
+            onChange={(e) => handleAmountInputChangeFor(e, setAmount, currency)}
             className="tnum w-full min-w-0 bg-transparent text-amount font-semibold tracking-tight outline-none placeholder:text-ink-3"
           />
-          <span className="shrink-0 text-base text-ink-3">{t.currency}</span>
+          <span className="shrink-0 text-base text-ink-3">{currencyLabel(currency, t)}</span>
         </div>
       </div>
+
+      <input type="hidden" name="currency" value={currency} />
+      <CurrencyToggle value={currency} onChange={changeCurrency} t={t} />
 
       {/* min-w-0 is load-bearing: a fieldset's UA min-inline-size is min-content,
           so without it the chip row's full width pushes the form wider than the

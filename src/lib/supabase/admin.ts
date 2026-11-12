@@ -5,6 +5,8 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * The service_role key bypasses row level security entirely. Only import this
  * from trusted, non-user-scoped server code:
  * - the reminder cron route (src/app/api/push/send-reminders/route.ts)
+ * - the /api/telegram routes, which authenticate the caller themselves
+ *   (signed initData / webhook secret) before touching any row
  * - the /admin dashboard (src/app/admin/page.tsx), which reads the
  *   auth.users-joining stats_* views and gates access with its own
  *   ADMIN_EMAIL check before this is ever called

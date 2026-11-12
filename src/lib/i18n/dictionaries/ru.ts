@@ -206,6 +206,15 @@ export const ru: Dictionary = {
     retry: "Повторить",
   },
 
+telegram: {
+    title: "Telegram",
+    description: "Подключите Telegram, чтобы Mini App открывал этот же аккаунт со всеми расходами.",
+    linked: "Telegram подключён. Mini App показывает этот аккаунт.",
+    connect: "Подключить Telegram",
+    relink: "Подключить другой Telegram",
+    error: "Не удалось создать ссылку. Попробуйте ещё раз.",
+  },
+
   notifications: {
     title: "Напоминания",
     description: "Получайте напоминание вечером, если в этот день ничего не записано.",

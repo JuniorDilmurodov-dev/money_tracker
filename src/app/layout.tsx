@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import Script from "next/script";
 
 import { AntdProvider } from "@/components/antd-provider";
 import { ServiceWorkerRegistrar } from "@/components/pwa";
@@ -58,7 +59,11 @@ try {
 } catch (e) {}
 `;
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const locale = await getLocale();
 
   return (
@@ -74,6 +79,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             Screen" there opens the app in a tab with the address bar showing. */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body className="min-h-full flex flex-col">
         <AntdProvider locale={locale}>{children}</AntdProvider>

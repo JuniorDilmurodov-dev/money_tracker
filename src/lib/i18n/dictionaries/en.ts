@@ -200,6 +200,15 @@ export const en = {
     retry: "Try again",
   },
 
+telegram: {
+    title: "Telegram",
+    description: "Connect your Telegram so the Mini App opens this same account with all your expenses.",
+    linked: "Telegram is connected. The Mini App shows this account.",
+    connect: "Connect Telegram",
+    relink: "Connect another Telegram",
+    error: "Could not create the link. Try again.",
+  },
+
   notifications: {
     title: "Reminders",
     description: "Get a nudge in the evening if you haven't logged anything that day.",

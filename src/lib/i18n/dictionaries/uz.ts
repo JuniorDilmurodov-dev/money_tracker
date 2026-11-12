@@ -196,6 +196,15 @@ export const uz: Dictionary = {
     retry: "Qayta urinish",
   },
 
+telegram: {
+    title: "Telegram",
+    description: "Telegram'ni ulang — Mini App aynan shu hisobni va barcha xarajatlaringizni ochadi.",
+    linked: "Telegram ulangan. Mini App shu hisobni ko'rsatadi.",
+    connect: "Telegram'ni ulash",
+    relink: "Boshqa Telegram'ni ulash",
+    error: "Havola yaratib bo'lmadi. Qayta urinib ko'ring.",
+  },
+
   notifications: {
     title: "Eslatmalar",
     description: "Kunni xarajat kiritmasdan o'tkazsangiz, kechqurun eslatib qo'yamiz.",

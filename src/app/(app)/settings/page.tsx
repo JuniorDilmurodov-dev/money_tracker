@@ -2,6 +2,8 @@ import { Card } from "@/components/ui";
 import { signOut } from "@/app/actions";
 import { getCategories, getMonthlyBudget } from "@/lib/queries";
 import { getSessionUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { TelegramLinkCard } from "@/components/telegram-link";
 import { InstallCard } from "@/components/pwa";
 import { NotificationCard } from "@/components/notifications";
 import { BudgetForm, CategoryManager } from "./forms";
@@ -18,6 +20,14 @@ export default async function SettingsPage() {
     getMonthlyBudget(),
     getSessionUser(),
   ]);
+
+  const { data: tgLink } = user
+    ? await createAdminClient()
+        .from("telegram_users")
+        .select("telegram_id")
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : { data: null };
 
   return (
     <div className="flex flex-col gap-4">
@@ -37,6 +47,10 @@ export default async function SettingsPage() {
 
       <Card title={t.notifications.title}>
         <NotificationCard />
+      </Card>
+
+      <Card title={t.telegram.title}>
+        <TelegramLinkCard linked={!!tgLink} />
       </Card>
 
       <Card title={t.settings.account}>

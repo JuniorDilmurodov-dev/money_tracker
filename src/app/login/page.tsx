@@ -1,5 +1,6 @@
 import { LoginForm } from "./login-form";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { TelegramLogin } from "@/components/telegram-login";
 import { ErrorText } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
 
@@ -36,6 +37,7 @@ export default async function LoginPage({
       )}
       <div className="mt-8">
         <LoginForm />
+        <TelegramLogin />
       </div>
     </div>
   );
